@@ -1,0 +1,114 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>面试详情 - 面试时间规划器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="brand">
+        <div class="brand-mark">面</div>
+        <span>面试时间规划器</span>
+      </div>
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">添加面试</a>
+        <a class="nav-link active" href="schedule.html">时间表</a>
+      </nav>
+    </header>
+
+    <main>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+        <a class="btn secondary small" href="schedule.html">← 返回时间表</a>
+        <span class="status-pill status-upcoming">即将开始</span>
+      </div>
+
+      <div class="detail-grid with-resume">
+        <div style="display:grid; gap:16px;">
+          <section class="card candidate-card">
+            <div class="avatar">张</div>
+            <h1 class="candidate-name">张三</h1>
+            <p class="candidate-role">后端开发实习生</p>
+            <div style="margin-top:22px;">
+              <ul class="info-list">
+                <li>
+                  <span class="info-label">面试负责人</span>
+                  <span class="info-value">李经理、王工</span>
+                </li>
+                <li>
+                  <span class="info-label">数据来源</span>
+                  <span class="info-value">手动粘贴</span>
+                </li>
+                <li>
+                  <span class="info-label">备注</span>
+                  <span class="info-value" style="font-weight:400;">候选人已确认线上面试</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card meeting-card">
+            <h2 class="info-title">面试信息</h2>
+            <ul class="info-list">
+              <li>
+                <span class="info-label">面试主题</span>
+                <span class="info-value">后端开发实习生张三的面试</span>
+              </li>
+              <li>
+                <span class="info-label">面试时间</span>
+                <span class="info-value">2026-09-03 星期四 10:00 - 10:30</span>
+              </li>
+              <li>
+                <span class="info-label">会议软件</span>
+                <span class="info-value">腾讯会议</span>
+              </li>
+              <li>
+                <span class="info-label">会议号</span>
+                <span class="info-value meeting-id">
+                  519-881-509
+                  <button class="btn secondary small" type="button">复制</button>
+                </span>
+              </li>
+              <li>
+                <span class="info-label">入会链接</span>
+                <span class="info-value"><a class="link" href="https://meeting.tencent.com/dm/demo-meeting">https://meeting.tencent.com/dm/demo-meeting</a></span>
+              </li>
+            </ul>
+            <div class="detail-actions">
+              <a class="btn" href="https://meeting.tencent.com/dm/demo-meeting">打开会议链接</a>
+              <div class="action-group">
+                <button class="btn secondary" type="button">编辑</button>
+                <button class="btn danger" type="button">删除</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="card resume-viewer-card">
+          <div class="viewer-header">
+            <h2 class="viewer-title">原始简历</h2>
+            <button class="btn secondary small" type="button" data-open-resume>放大查看</button>
+          </div>
+          <iframe class="pdf-frame" src="sample-resume.pdf" title="简历 PDF 预览"></iframe>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" data-resume-modal hidden>
+    <div class="modal-content card">
+      <div class="modal-header">
+        <strong>张三简历 · sample-resume.pdf</strong>
+        <button class="close-btn" type="button" data-close-resume aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <iframe class="pdf-frame" src="sample-resume.pdf" title="简历 PDF 预览"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

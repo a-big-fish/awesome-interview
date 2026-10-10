@@ -1,0 +1,37 @@
+[project]
+name = "awesome-interview"
+version = "0.1.0"
+description = "Interview experience sharing and personal interview planning."
+readme = "README.md"
+authors = [{ name = "tianzhengc" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.14",
+    "jinja2>=3.1.6",
+    "pymupdf>=1.28.2",
+    "python-multipart>=0.0.20",
+    "pydantic>=2.13.5",
+    "tzdata>=2025.2",
+    "uvicorn>=0.34.3",
+    "opencv-python>=5.0.0.93",
+    "pydantic-settings>=2.15.0",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.2",
+    "boto3>=1.43.93",
+]
+
+[project.scripts]
+awesome-interview = "app.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.8,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""

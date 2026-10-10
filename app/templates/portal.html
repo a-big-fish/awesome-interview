@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}日程工作台{% endblock %}
+{% block body_class %}portal-page{% endblock %}
+{% block brand %}<a class="brand" href="/"><div class="brand-mark">日</div><span>日程工作台</span></a>{% endblock %}
+{% block navigation %}<nav class="page-nav"><a class="nav-link" href="/meetings">会议日程</a><a class="nav-link" href="/my-schedule">我的日程</a></nav>{% endblock %}
+{% block content %}
+<section class="portal-intro"><span class="section-tag">选择工作空间</span><h1>把每一场安排，放在合适的位置。</h1><p>集中安排企业面试，或管理自己的求职季日程。</p></section>
+<div class="portal-options">
+  <a class="portal-option enterprise-option" href="/meetings"><span class="portal-index">01 / 企业与会议</span><span class="portal-icon">会</span><h2>会议日程</h2><p>解析邀请、安排密集面试，按工作与休息时段查看时间表。</p><span class="portal-arrow">进入会议日程 →</span></a>
+  <a class="portal-option personal-option" href="/my-schedule"><span class="portal-index">02 / 个人规划</span><span class="portal-icon">我</span><h2>我的日程</h2><p>在一张日历中管理面试、笔试、课程与个人安排，并维护简历。</p><span class="portal-arrow">进入我的日程 →</span></a>
+</div>
+{% endblock %}

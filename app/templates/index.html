@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}添加会议 - 会议日程规划器{% endblock %}
+{% block nav_index %}active{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <h1 class="section-title">粘贴会议邀请</h1>
+  <p class="section-description">系统会自动识别会议时间、会议软件、会议号和入会链接。</p>
+
+  {% if error %}
+  <div class="parse-tip error">
+    <span>⚠️</span><span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  {% if warnings %}
+  <div class="parse-tip warning"><span>⚠️</span><span>会议与以下非工作时段重叠：{{ warnings | join('；') }}。确认后仍可保存。</span></div>
+  {% endif %}
+
+  <form action="/meetings/interviews" method="post" enctype="multipart/form-data" data-resume-upload-form>
+    {% if warnings %}<input type="hidden" name="confirmation_token" value="{{ confirmation_token }}">{% endif %}
+    <div style="margin-top:22px">
+      <label class="form-label" for="raw_text">会议邀请文本</label>
+      <textarea id="raw_text" name="raw_text" class="textarea" required placeholder="粘贴腾讯会议邀请文本">{{ raw_text or '' }}</textarea>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <label class="form-label" for="candidate_name">候选人姓名 <span class="optional">可选</span></label>
+        <input id="candidate_name" name="candidate_name" class="input" value="{{ candidate_name or '' }}" placeholder="输入候选人姓名">
+      </div>
+      <div>
+        <label class="form-label" for="position">应聘岗位 <span class="optional">可选</span></label>
+        <input id="position" name="position" class="input" value="{{ position or '' }}" placeholder="输入应聘岗位">
+      </div>
+      <div>
+        <label class="form-label" for="interviewer_names">面试负责人 <span class="optional">可选，多人用逗号分隔</span></label>
+        <input id="interviewer_names" name="interviewer_names" class="input" value="{{ interviewer_names or '' }}" placeholder="输入面试负责人">
+      </div>
+    </div>
+
+    {% if parsed_preview %}
+    <div class="enterprise-preview card">
+      <h2>核对解析结果</h2>
+      <p class="section-description">保存前可以修正会议类型、主题、北京时间、平台和入会链接。</p>
+      <div class="form-grid">
+        <label>类型 <select class="input" name="reviewed_kind"><option value="interview" {% if parsed_preview.kind == 'interview' %}selected{% endif %}>面试</option><option value="meeting" {% if parsed_preview.kind == 'meeting' %}selected{% endif %}>普通会议</option></select></label>
+        <label>主题 <input class="input" name="reviewed_subject" required value="{{ parsed_preview.subject }}"></label>
+        <label>开始时间 <input class="input" type="datetime-local" name="reviewed_start" required value="{{ parsed_preview.start_time.strftime('%Y-%m-%dT%H:%M') }}"></label>
+        <label>结束时间 <input class="input" type="datetime-local" name="reviewed_end" required value="{{ parsed_preview.end_time.strftime('%Y-%m-%dT%H:%M') }}"></label>
+        <label>会议平台 <input class="input" name="reviewed_platform" value="{{ parsed_preview.platform }}"></label>
+        <label>入会链接 <input class="input" type="url" name="reviewed_meeting_url" value="{{ parsed_preview.meeting_url or '' }}"></label>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-section">
+      <div class="form-section-title"><span>简历解析</span><span class="section-tag">PDF</span></div>
+      <p class="section-description">支持拖拽上传本地简历 PDF，系统会提取文本、基本字段和图片。请先将简历 PDF 下载到本地；浏览器中的在线预览文件无法直接拖入。</p>
+      <div class="upload-zone" data-upload-zone role="button" tabindex="0" aria-label="拖拽或点击上传简历 PDF">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">拖拽简历 PDF 到此处</div>
+        <div class="upload-description">或点击选择文件 · 支持 .pdf</div>
+        <input type="file" accept=".pdf,application/pdf" name="resume" data-file-input hidden>
+      </div>
+      <div class="file-list" data-file-list></div>
+    </div>
+
+    <div class="form-actions">
+      <div class="action-group">
+        <a class="btn secondary" href="/meetings/schedule">查看时间表</a>
+      </div>
+      {% if parsed_preview %}<button class="btn" type="submit" name="action" value="save" data-primary-submit>{{ '仍添加到时间表' if warnings else '确认并添加到时间表' }}</button>
+      {% else %}<button class="btn" type="submit" name="action" value="preview" data-primary-submit>解析并预览</button>{% endif %}
+    </div>
+  </form>
+
+  <div class="parse-tip">
+    <span>💡</span>
+    <span>解析失败时会保留原文，并提示缺少会议时间等字段。会议号和入会链接允许为空。</span>
+  </div>
+</section>
+{% endblock %}

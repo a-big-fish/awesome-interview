@@ -1,0 +1,29 @@
+{% extends 'personal_base.html' %}
+{% block title %}面经广场 - Awesome Interview{% endblock %}
+{% block main_class %}personal-experiences-main{% endblock %}
+{% block content %}
+<div class="experiences-page experience-plaza-page">
+  <header><h1>面经广场</h1><p>浏览其他求职者公开的面试记录。</p></header>
+  <form class="card experience-plaza-filters" method="get" action="/my-schedule/experiences/plaza">
+    <label>公司筛选<input name="company" value="{{ company }}" maxlength="200" placeholder="输入公司名称"></label>
+    <label>面试时间排序<select name="order"><option value="newest" {% if order == 'newest' %}selected{% endif %}>从新到旧</option><option value="oldest" {% if order == 'oldest' %}selected{% endif %}>从旧到新</option></select></label>
+    <button class="btn" type="submit">筛选</button>
+  </form>
+  <p class="experience-plaza-count">找到 {{ total }} 篇面经</p>
+  {% if items %}<div class="experience-plaza-grid">{% for row in items %}{% set item = row.experience %}
+    <a class="card experience-plaza-card" href="/my-schedule/experiences/plaza/{{ item.id }}">
+      <span class="experience-plaza-card-kicker">公开面经{% if item.interview_round %} · {{ item.interview_round }}{% endif %}</span>
+      <h2>{{ item.title }}</h2>
+      <p>{{ item.company or '公司未填写' }} · {{ item.position or '岗位未填写' }}</p>
+      <p class="experience-public-author">作者：{{ row.author }}</p>
+      <div class="experience-plaza-card-meta"><span>{{ item.interviewed_at.strftime('%Y-%m-%d') if item.interviewed_at else '面试时间未填写' }}</span><span>{{ row.question_count }} 道问题</span></div>
+      {% if item.feeling %}<p class="experience-plaza-excerpt">{{ item.feeling[:110] }}{% if item.feeling|length > 110 %}…{% endif %}</p>{% endif %}
+    </a>
+  {% endfor %}</div>{% else %}<div class="card experience-plaza-empty">暂无符合条件的公开面经。试试其他公司名称。</div>{% endif %}
+  <nav class="experience-plaza-pagination" aria-label="分页">
+    {% if page > 1 %}<a href="?company={{ company|urlencode }}&order={{ order }}&page={{ page - 1 }}">上一页</a>{% endif %}
+    <span>第 {{ page }} 页</span>
+    {% if page * page_size < total %}<a href="?company={{ company|urlencode }}&order={{ order }}&page={{ page + 1 }}">下一页</a>{% endif %}
+  </nav>
+</div>
+{% endblock %}

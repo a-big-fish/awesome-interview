@@ -1,0 +1,75 @@
+{% extends "personal_base.html" %}
+{% block title %}添加日程 - Awesome Interview{% endblock %}
+{% block content %}
+<section class="card personal-form-page">
+  <h1 class="section-title">添加日程</h1>
+  <p class="section-description">手动填写，或粘贴邀请后核对解析结果。这里无需填写候选人姓名。</p>
+  {% if error %}<div class="parse-tip error">{{ error }}</div>{% endif %}
+  {% if warnings %}<div class="parse-tip warning">与已有安排重叠：{{ warnings | join('、') }}。确认后仍可保存。</div>{% endif %}
+  <form action="/my-schedule/parse" method="post" class="personal-invitation-form">
+    {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+    <label class="form-label" for="personal-raw">解析会议邀请</label>
+    <textarea id="personal-raw" class="textarea" name="raw_text" placeholder="粘贴面试或普通会议邀请文本">{{ values.raw_text or '' }}</textarea>
+    <button class="btn secondary" type="submit">解析并预览</button>
+  </form>
+  <div class="personal-form-divider">{{ '确认解析结果' if preview else '手动添加' }}</div>
+  <form action="/my-schedule/events" method="post" class="personal-event-form">
+    {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+    <input type="hidden" name="source" value="{{ 'invitation' if preview else 'manual' }}">
+    {% if preview %}<textarea name="raw_text" hidden>{{ values.raw_text }}</textarea>{% endif %}
+    {% if warnings %}<input type="hidden" name="confirm_overlap" value="true">{% endif %}
+    <label>事件标题 <input class="input" name="title" required value="{{ values.title or '' }}"></label>
+    <label>类型
+      <select class="input" name="event_type" required data-event-type>
+      {% for key, label in event_labels.items() %}<option value="{{ key }}" {% if (values.event_type or 'interview') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="personal-form-pair">
+      <div class="personal-time-field">
+        <span>开始时间</span>
+        <input type="hidden" name="start_at" value="{{ values.start_at or '' }}" data-time-value>
+        <button class="input personal-time-trigger" type="button" data-time-trigger aria-haspopup="dialog" aria-label="选择开始时间"></button>
+      </div>
+      <div class="personal-time-field">
+        <span>结束时间</span>
+        <input type="hidden" name="end_at" value="{{ values.end_at or '' }}" data-time-value>
+        <button class="input personal-time-trigger" type="button" data-time-trigger aria-haspopup="dialog" aria-label="选择结束时间"></button>
+      </div>
+    </div>
+    <label>时区 <input class="input personal-timezone-input" name="timezone" list="personal-timezones" required value="{{ values.timezone or 'Asia/Shanghai' }}"></label>
+    <fieldset class="personal-reminder-options"><legend>系统提醒（可选，默认关闭）</legend>
+      {% set selected_reminders = values.reminder_offsets_minutes or [] %}
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="10" {% if '10' in selected_reminders %}checked{% endif %}> 提前 10 分钟</label>
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="60" {% if '60' in selected_reminders %}checked{% endif %}> 提前 1 小时</label>
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="1440" {% if '1440' in selected_reminders %}checked{% endif %}> 提前 1 天</label>
+      <p>提醒设置会同步到手机；是否能收到通知取决于该设备的系统权限。</p>
+    </fieldset>
+    <datalist id="personal-timezones"><option value="Asia/Shanghai"><option value="Asia/Tokyo"><option value="Europe/London"><option value="America/New_York"></datalist>
+    <label class="personal-position-field" data-position-field {% if (values.event_type or 'interview') != 'interview' %}hidden{% endif %}>应聘岗位（面试可选） <input class="input" name="position" value="{{ values.position or '' }}"></label>
+    <label>地点 <input class="input" name="location_text" value="{{ values.location_text or '' }}" placeholder="地址、楼宇或线上"></label>
+    {% if preview %}
+    <div class="personal-form-pair">
+      <label>会议平台 <input class="input" name="platform" value="{{ values.platform or '' }}"></label>
+      <label>会议链接 <input class="input" name="meeting_url" value="{{ values.meeting_url or '' }}"></label>
+    </div>
+    {% else %}
+    <label>地点链接（可选） <input class="input" name="location_url" value="{{ values.location_url or '' }}" placeholder="https://..."></label>
+    {% endif %}
+    <label>备注 <textarea class="textarea" name="note" rows="3">{{ values.note or '' }}</textarea></label>
+    <div class="settings-actions"><a class="btn secondary" href="/my-schedule">取消</a><button class="btn" type="submit">{{ '仍保存日程' if warnings else '保存日程' }}</button></div>
+  </form>
+</section>
+<dialog class="personal-time-dialog" data-time-dialog aria-label="选择日期和时间">
+  <div class="personal-time-dialog-heading">
+    <strong data-time-heading></strong>
+    <button type="button" class="personal-time-close" data-time-close aria-label="关闭">×</button>
+  </div>
+  <div class="personal-time-progress" aria-live="polite" data-time-progress></div>
+  <div class="personal-time-options" data-time-options></div>
+  <div class="personal-time-actions">
+    <button type="button" class="btn secondary" data-time-back>上一步</button>
+    <button type="button" class="btn secondary" data-time-cancel>取消</button>
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ asset_url('js/personal_time_picker.js') }}" defer></script>{% endblock %}

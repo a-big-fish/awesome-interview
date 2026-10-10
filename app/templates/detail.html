@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}{{ '面试详情' if entry.kind == 'interview' else '会议详情' }} - 会议日程规划器{% endblock %}
+{% block content %}
+<section class="card detail-card">
+  <div class="detail-header">
+    <div>
+      <p class="detail-label">{{ '面试详情' if entry.kind == 'interview' else '会议详情' }}</p>
+      <h1>{{ entry.candidate_name if entry.kind == 'interview' else entry.subject }}</h1>
+      {% if entry.kind == 'interview' %}<p class="detail-subtitle">{{ entry.position or entry.subject }}</p>{% endif %}
+    </div>
+    <div class="detail-actions">
+      {% if entry.kind == 'interview' %}<button class="btn" type="button" data-toggle-ai-assistant {% if not resume %}disabled title="请先上传简历"{% endif %}>🤖 AI 面试辅助</button>{% endif %}
+      <a class="btn secondary" href="/meetings/schedule?date={{ entry.start_time.date().isoformat() }}">返回时间表</a>
+      <button class="btn danger" type="button" data-delete="/api/v1/interviews/{{ entry.id }}">删除记录</button>
+    </div>
+  </div>
+
+  <div class="detail-grid {% if entry.kind == 'interview' %}with-resume{% endif %}">
+    <div class="info-column">
+      {% if entry.kind == 'interview' %}
+      <div class="info-card">
+        <h2>候选人信息</h2>
+        <div class="candidate-info-layout {% if candidate_photo %}with-photo{% endif %}">
+          {% if candidate_photo %}
+          <img
+            class="candidate-photo"
+            src="/resumes/{{ resume.id }}/images/{{ candidate_photo.image_id }}"
+            alt="候选人照片"
+          >
+          {% endif %}
+          <div class="info-grid">
+            <div><span>候选人姓名</span><strong>{{ entry.candidate_name }}</strong></div>
+            <div><span>应聘岗位</span><strong>{{ entry.position or '未填写' }}</strong></div>
+            <div><span>面试负责人</span><strong>{{ entry.interviewer_names | join('、') if entry.interviewer_names else '未填写' }}</strong></div>
+            {% if resume %}
+            <div><span>简历解析姓名</span><strong>{{ resume.candidate_name or '未识别' }}</strong></div>
+            <div><span>联系电话</span><strong>{{ resume.phone or '未识别' }}</strong></div>
+            <div><span>邮箱</span><strong>{{ resume.email or '未识别' }}</strong></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="info-card">
+        <h2>{{ '面试信息' if entry.kind == 'interview' else '会议信息' }}</h2>
+        <div class="info-grid">
+          <div><span>会议主题</span><strong>{{ entry.subject }}</strong></div>
+          <div><span>日期</span><strong>{{ entry.start_time.strftime('%Y-%m-%d %A') }}</strong></div>
+          <div><span>开始 / 结束</span><strong>{{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}</strong></div>
+          <div><span>会议软件</span><strong>{{ display_platform }}</strong></div>
+          <div><span>会议号</span><strong>{{ entry.room_number or '未提供' }}</strong></div>
+          <div><span>会议链接</span><strong>{% if entry.meeting_url %}<a href="{{ entry.meeting_url }}" target="_blank">打开会议链接</a>{% else %}未提供{% endif %}</strong></div>
+          <div><span>备注</span><strong>{{ entry.note or '无' }}</strong></div>
+        </div>
+        <div class="action-row">
+          {% if entry.room_number %}
+          <button class="btn secondary" type="button" data-copy="{{ entry.room_number }}">复制会议号</button>
+          {% endif %}
+          {% if entry.meeting_url %}
+          <a class="btn" href="{{ entry.meeting_url }}" target="_blank">打开会议链接</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if entry.kind == 'interview' %}<div class="resume-viewer-card">
+      <div class="resume-toolbar">
+        <div>
+          <h2>原始简历</h2>
+          <p>{% if resume %}{{ resume.file_name }} · {{ resume.page_count }} 页{% else %}未上传简历{% endif %}</p>
+        </div>
+        {% if resume %}
+        <div class="resume-toolbar-actions">
+          <a class="btn secondary" href="/resumes/{{ resume.id }}/download">下载简历</a>
+          <button class="btn secondary" type="button" data-open-resume>放大查看</button>
+        </div>
+        {% endif %}
+      </div>
+      {% if resume %}
+      <iframe class="pdf-frame" src="/resumes/{{ resume.id }}/pdf" title="简历 PDF"></iframe>
+      <div class="modal" data-resume-modal hidden>
+        <div class="modal-content card">
+          <div class="modal-header">
+            <div><strong>{{ resume.file_name }}</strong><span>{{ resume.page_count }} 页</span></div>
+            <button class="close-btn" type="button" data-close-resume>×</button>
+          </div>
+          <div class="modal-body">
+            <iframe class="pdf-frame" src="/resumes/{{ resume.id }}/pdf" title="简历 PDF 放大预览"></iframe>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <form
+        class="resume-upload-form"
+        action="/interviews/{{ entry.id }}/resume"
+        method="post"
+        enctype="multipart/form-data"
+        data-resume-upload-form
+      >
+        {% if resume_error %}
+        <div class="parse-tip error">
+          <span>⚠️</span><span>{{ resume_error }}</span>
+        </div>
+        {% endif %}
+        <div class="upload-zone compact" data-upload-zone role="button" tabindex="0" aria-label="拖拽或点击上传本地简历 PDF">
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">拖拽本地简历 PDF 到此处</div>
+          <div class="upload-description">或点击选择文件 · 支持 .pdf</div>
+          <input type="file" accept=".pdf,application/pdf" name="resume" data-file-input hidden required>
+        </div>
+        <div class="file-list" data-file-list></div>
+        <p class="upload-hint">请先将简历 PDF 下载到本地，再拖拽上传；浏览器中的在线预览文件无法直接拖入。</p>
+        <button class="btn" type="submit">解析并关联简历</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if entry.kind == 'interview' and resume %}
+<div class="ai-modal" data-ai-modal hidden data-entry-id="{{ entry.id }}">
+  <aside class="ai-panel" data-ai-panel aria-label="AI 面试辅助对话">
+    <div class="ai-assistant-header">
+      <div class="ai-agent">
+        <span class="ai-agent-avatar">🤖</span>
+        <div class="ai-agent-info">
+          <strong>AI 面试助手</strong>
+          <span class="ai-agent-status" data-ai-status><i></i>待加载</span>
+        </div>
+      </div>
+      <button class="ai-close" type="button" data-close-ai-assistant aria-label="关闭 AI 辅助">✕</button>
+    </div>
+
+    <details class="ai-metadata-settings">
+      <summary>元数据配置（系统提示词、AI模型）</summary>
+      <textarea data-system-prompt-input rows="3" maxlength="8000" aria-label="系统提示词"></textarea>
+      <div class="ai-config-grid">
+        <label class="ai-config-field">
+          <span>模型 URL</span>
+          <input data-ai-base-url-input type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1">
+        </label>
+        <label class="ai-config-field">
+          <span>模型名称</span>
+          <input data-ai-model-input type="text" autocomplete="off" spellcheck="false" placeholder="gpt-4o-mini">
+        </label>
+        <label class="ai-config-field ai-config-field-wide">
+          <span>API Key</span>
+          <input data-ai-api-key-input type="password" autocomplete="new-password" placeholder="仅本次对话使用">
+        </label>
+      </div>
+    </details>
+
+    <div class="ai-chat-messages" data-chat-messages>
+      <div class="ai-msg agent">
+        <span class="ai-avatar">🤖</span>
+        <div class="ai-body">
+          <div class="ai-bubble">
+            <p>你好，我是 <strong>AI 面试助手</strong> ✨</p>
+            <p>可以结合候选人简历与面试信息为你提供辅助，你可以直接提问，例如：</p>
+            <ul>
+              <li>项目经历拷打</li>
+              <li>实习经历拷打</li>
+              <li>八股知识拷打</li>
+            </ul>
+          </div>
+          <span class="ai-time">刚刚</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-suggestions">
+      <button type="button" data-suggest="项目经历拷打">📂 项目经历拷打</button>
+      <button type="button" data-suggest="实习经历拷打">💼 实习经历拷打</button>
+      <button type="button" data-suggest="八股知识拷打">📚 八股知识拷打</button>
+    </div>
+
+    <form class="ai-chat-composer" data-chat-form>
+      <textarea data-chat-input rows="1" placeholder="输入问题，Enter 发送，Shift+Enter 换行…" aria-label="输入消息"></textarea>
+      <button class="ai-send" type="submit" aria-label="发送">发送</button>
+    </form>
+</aside>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+  <script src="{{ asset_url('vendor/marked.min.js') }}"></script>
+  <script src="{{ asset_url('vendor/purify.min.js') }}"></script>
+{% endblock %}

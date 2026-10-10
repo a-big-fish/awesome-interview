@@ -1,0 +1,36 @@
+{% extends "personal_base.html" %}
+{% block title %}{{ event.title if event else '日程' }} - Awesome Interview{% endblock %}
+{% block content %}
+<section class="card personal-form-page">
+  <div class="personal-toolbar"><div><span class="personal-type-pill">{{ event_labels[event.type] }}</span><h1 class="section-title">{{ event.title }}</h1></div><a class="btn secondary" href="/my-schedule">返回日程表</a></div>
+  {% if event.meeting_url %}<a class="btn" href="{{ event.meeting_url }}" target="_blank" rel="noopener noreferrer">进入会议</a>{% endif %}
+  {% if event.room_number %}<p>会议号：{{ event.room_number }}</p>{% endif %}
+  {% if error %}<div class="parse-tip error">{{ error }}</div>{% endif %}
+  {% if warnings %}<div class="parse-tip warning">与已有安排重叠：{{ warnings | join('、') }}。确认后仍可保存。</div>{% endif %}
+  <h2>编辑日程</h2>
+  <form action="/my-schedule/events/{{ event.id }}/edit" method="post" class="personal-event-form">
+    {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+    {% if warnings %}<input type="hidden" name="confirm_overlap" value="true">{% endif %}
+    <label>标题 <input class="input" name="title" required value="{{ values.title if values else event.title }}"></label>
+    <label>类型 <select class="input" name="event_type" data-event-type>{% for key, label in event_labels.items() %}<option value="{{ key }}" {% if (values.event_type if values else event.type) == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <div class="personal-form-pair">
+      <label>开始 <input class="input" type="datetime-local" name="start_at" required value="{{ values.start_at if values else event.start_at.strftime('%Y-%m-%dT%H:%M') }}"></label>
+      <label>结束 <input class="input" type="datetime-local" name="end_at" required value="{{ values.end_at if values else event.end_at.strftime('%Y-%m-%dT%H:%M') }}"></label>
+    </div>
+    <label>时区 <input class="input" name="timezone" required value="{{ values.timezone if values else event.timezone }}"></label>
+    <fieldset class="personal-reminder-options"><legend>系统提醒（可选）</legend>
+      {% set selected_reminders = values.reminder_offsets_minutes if values else event.reminder_offsets_minutes %}
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="10" {% if 10 in selected_reminders or '10' in selected_reminders %}checked{% endif %}> 提前 10 分钟</label>
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="60" {% if 60 in selected_reminders or '60' in selected_reminders %}checked{% endif %}> 提前 1 小时</label>
+      <label><input type="checkbox" name="reminder_offsets_minutes" value="1440" {% if 1440 in selected_reminders or '1440' in selected_reminders %}checked{% endif %}> 提前 1 天</label>
+    </fieldset>
+    <label class="personal-position-field" data-position-field {% if (values.event_type if values else event.type) != 'interview' %}hidden{% endif %}>应聘岗位（面试可选） <input class="input" name="position" value="{{ values.position if values else (event.position or '') }}"></label>
+    <label>地点 <input class="input" name="location_text" value="{{ values.location_text if values else (event.location_text or '') }}"></label>
+    <label>地点链接 <input class="input" name="location_url" value="{{ values.location_url if values else (event.location_url or '') }}"></label>
+    <label>备注 <textarea class="textarea" name="note" rows="3">{{ values.note if values else (event.note or '') }}</textarea></label>
+    <div class="settings-actions"><button class="btn" type="submit">保存修改</button></div>
+  </form>
+  <form action="/my-schedule/events/{{ event.id }}/delete" method="post" class="personal-delete-form">{% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}<button class="btn danger" type="submit" onclick="return confirm('确定删除这项日程吗？')">删除日程</button></form>
+</section>
+{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ asset_url('js/personal_time_picker.js') }}" defer></script>{% endblock %}

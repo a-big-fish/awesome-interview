@@ -1,0 +1,57 @@
+{% extends "personal_base.html" %}
+{% block title %}日程表 - Awesome Interview{% endblock %}
+{% block body_class %}page-wide personal-app personal-scroll-page personal-dashboard-page{% endblock %}
+{% block content %}
+<div class="personal-toolbar">
+  <div><h1 class="section-title">我的日程</h1><p class="section-description">北京时间 · 面试、笔试、课程与其他安排集中查看</p></div>
+  <a class="btn" href="/my-schedule/new">＋ 添加日程</a>
+</div>
+<div class="personal-layout">
+  <section class="card personal-calendar">
+    <div class="date-nav-row">
+      <a class="date-nav" href="/my-schedule?date_value={{ prev_date }}" aria-label="前一天">‹</a>
+      <h2>{{ selected_date }} {{ selected_weekday }} · {{ entries|length }} 项安排</h2>
+      <a class="date-nav" href="/my-schedule?date_value={{ next_date }}" aria-label="后一天">›</a>
+    </div>
+    <div class="time-table personal-time-table">
+      <div class="time-grid-wrap" style="--hour-height: 88px; --start-hour: {{ start_hour }};">
+        <div class="time-labels">
+          {% for label in time_labels %}<span class="time-label" style="top: {{ loop.index0 * 88 }}px;">{{ label }}</span>{% endfor %}
+        </div>
+        <div class="time-grid" data-now-grid data-calendar-date="{{ selected_date.isoformat() }}" data-time-zone="Asia/Shanghai" data-start-minute="{{ start_hour * 60 }}" data-end-minute="{{ end_hour * 60 }}" style="height: {{ grid_height }}px;">
+          <div class="now-line" data-now-line {% if not show_now_line %}hidden{% endif %} style="top: {{ (now_minutes - start_hour * 60) / 60 * 88 }}px;"><span class="now-line-label">当前时间 {{ now_time }}</span></div>
+          {% for item in entries %}
+          <a class="event-card type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}"
+             style="--start-min: {{ item.start_minutes }}; --duration: {{ item.duration_minutes }}; --column: {{ item.column }}; --columns: {{ item.columns }};">
+            <div class="event-head"><span class="event-title">{{ item.title }}</span><span>{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</span></div>
+            <div class="event-meta">{{ item.type_label }}{% if item.location_text %} · {{ item.location_text }}{% endif %}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="personal-event-list">
+    {% for item in entries %}
+      <a class="personal-event-card type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}">
+        <span class="personal-type-pill">{{ item.type_label }}</span>
+        <span class="personal-event-time">{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</span>
+        <strong>{{ item.title }}</strong>
+        {% if item.location_text %}<span class="muted-text">{{ item.location_text }}</span>{% endif %}
+      </a>
+    {% else %}
+      <div class="empty-state"><div class="empty-title">这一天还没有安排</div><p>可手动添加，或粘贴会议邀请解析。</p></div>
+    {% endfor %}
+    </div>
+  </section>
+  <aside class="card personal-upcoming">
+    <h2>接下来的安排</h2>
+    {% for item in upcoming %}
+      <a href="/my-schedule/events/{{ item.id }}" class="personal-upcoming-item">
+        <span>{{ item.start_time.strftime('%m-%d %H:%M') }} · {{ item.type_label }}</span>
+        <strong>{{ item.title }}</strong>
+      </a>
+    {% else %}<p class="muted-text">暂无后续安排</p>{% endfor %}
+    <a class="btn secondary" href="/my-schedule/interviews">打开我的面试工作台</a>
+  </aside>
+</div>
+{% endblock %}

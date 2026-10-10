@@ -1,0 +1,30 @@
+{% extends 'personal_base.html' %}
+{% block title %}我的面经 - Awesome Interview{% endblock %}
+{% block main_class %}personal-experiences-main{% endblock %}
+{% block content %}
+<div class="experiences-page">
+  <header><h1>我的面经</h1><p>面经独立保存，可选择关联一场面试日程。</p></header>
+  <div class="experiences-grid">
+    <section class="card experiences-list-card">
+      <h2>已保存的面经</h2>
+      {% if experiences %}<div class="experiences-list">{% for item in experiences %}
+        <div class="experience-list-row"><a class="experience-list-item" href="/my-schedule/experiences/{{ item.id }}"><strong>{{ item.title }}</strong><span>{{ item.company or '未填写公司' }} · {{ item.position or '未填写岗位' }}{% if item.interview_round %} · {{ item.interview_round }}{% endif %} · {{ count_by_id.get(item.id, 0) }} 道题</span><small>更新于 {{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</small></a><form action="/my-schedule/experiences/{{ item.id }}/visibility" method="post" class="experience-visibility-form">{% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}<input type="hidden" name="is_public" value="{{ 'private' if item.is_public else 'public' }}"><button type="submit" class="experience-visibility-pill {{ 'is-public' if item.is_public else '' }}" title="点击切换可见性">{{ '公开 · 改为私密' if item.is_public else '私密 · 改为公开' }}</button></form></div>
+      {% endfor %}</div>{% else %}<p class="section-description">还没有面经。可在这里创建，或从具体面试进入。</p>{% endif %}
+    </section>
+    <section class="card experiences-create-card"><h2>新建面经</h2>
+      <form action="/my-schedule/experiences" method="post" class="experience-small-form" data-experience-save>
+        {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+        <label>标题<input name="title" required maxlength="200" placeholder="例如：后端开发一面"></label>
+        <label>关联面试（可选）<select name="linked_event_id"><option value="">不关联日程</option>{% for event in event_options %}<option value="{{ event.id }}">{{ event.title }} · {{ event.start_at.strftime('%Y-%m-%d %H:%M') }}</option>{% endfor %}</select></label>
+        <label>公司（进入广场必填）<input name="company" maxlength="200"></label>
+        <p class="account-profile-hint">面经可以先存为草稿；填写公司并保存至少一道问题或面试感受后才会进入广场。</p>
+        <label>岗位（可选）<input name="position" maxlength="200"></label>
+        <label>面试时间（可选）<input name="interviewed_at" type="datetime-local"></label>
+        <label>面试轮次（可选）<select name="interview_round"><option value="">未填写</option><option>一面</option><option>二面</option><option>三面</option><option>HR 面</option><option>其他</option></select></label>
+        <label>可见性<select name="is_public"><option value="public">公开 · 登录用户可查看完整面经</option><option value="private">私密 · 仅自己可见</option></select></label>
+        <button class="btn" type="submit">创建面经</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

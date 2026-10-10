@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Awesome Interview{% endblock %}
+{% block body_class %}page-wide personal-app personal-scroll-page{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ asset_url('css/interview-experience-card.css') }}">
+<link rel="stylesheet" href="{{ asset_url('css/interview-experience-lines.css') }}">
+<link rel="stylesheet" href="{{ asset_url('css/interview-experience-plaza.css') }}">
+{% endblock %}
+{% block brand %}
+<a class="brand" href="/my-schedule/experiences/plaza" aria-label="Awesome Interview · 面经广场">
+  <div class="brand-mark">AI</div><span>Awesome Interview</span>
+</a>
+{% endblock %}
+{% block scripts %}<script src="{{ asset_url('js/personal_navigation.js') }}" defer></script><script src="{{ asset_url('js/personal_page_cache.js') }}" defer></script><script src="{{ asset_url('js/interview_experience.js') }}" defer></script>{% endblock %}
+{% block navigation %}
+<button class="mobile-nav-toggle" type="button" aria-label="展开导航" aria-controls="personal-page-nav" aria-expanded="true" data-mobile-nav-toggle><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button>
+<nav class="page-nav" id="personal-page-nav">
+  {% set current_path = request.url.path %}
+  {% if request.app.state.settings.app_mode != 'public_personal' %}<a class="nav-link" href="/">门户</a>{% endif %}
+  <a class="nav-link" href="/my-schedule" {% if current_path == '/my-schedule' or current_path.startswith('/my-schedule/events/') %}aria-current="page"{% endif %}>日程表</a>
+  <a class="nav-link" href="/my-schedule/experiences/plaza" {% if current_path.startswith('/my-schedule/experiences/plaza') %}aria-current="page"{% endif %}>面经广场</a>
+  <a class="nav-link" href="/my-schedule/new" {% if current_path == '/my-schedule/new' %}aria-current="page"{% endif %}>添加日程</a>
+  <a class="nav-link" href="/my-schedule/interviews" {% if current_path.startswith('/my-schedule/interviews') %}aria-current="page"{% endif %}>我的面试</a>
+  <a class="nav-link" href="/my-schedule/experiences" {% if current_path.startswith('/my-schedule/experiences') and not current_path.startswith('/my-schedule/experiences/plaza') %}aria-current="page"{% endif %}>我的面经</a>
+  {% if request.app.state.settings.app_mode == 'public_personal' %}<a class="nav-link" href="/my-schedule/profile" {% if current_path == '/my-schedule/profile' %}aria-current="page"{% endif %}>个人设置</a>{% endif %}
+  {% if request.app.state.settings.app_mode == 'public_personal' %}<form class="nav-logout-form" action="/auth/logout" method="post"><input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}"><button class="nav-link" type="submit">退出登录</button></form>{% endif %}
+</nav>
+{% endblock %}

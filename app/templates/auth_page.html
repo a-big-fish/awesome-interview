@@ -1,0 +1,39 @@
+{% extends "personal_base.html" %}
+{% block title %}{{ heading }} - Awesome Interview{% endblock %}
+{% block navigation %}<nav class="page-nav"><a class="nav-link" href="/">首页</a>{% if mode != 'login' %}<a class="nav-link" href="/auth/login">登录</a>{% endif %}</nav>{% endblock %}
+{% block content %}
+<section class="card personal-form-page">
+  <h1 class="section-title">{{ heading }}</h1>
+  {% if message %}<p class="parse-tip">{{ message }}</p>{% endif %}
+  {% if error %}<p class="parse-tip error">{{ error }}</p>{% endif %}
+  {% if mode in ('login', 'register', 'forgot', 'resend', 'reset') %}
+  <form action="{{ action }}" method="post" class="personal-event-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if mode == 'login' %}
+      <input type="hidden" name="next" value="{{ next_path }}">
+      <label>邮箱或用户名 <input class="input" name="identifier" autocomplete="username" required></label>
+      <label>密码 <input class="input" type="password" name="password" autocomplete="current-password" required></label>
+    {% elif mode == 'register' %}
+      {% if email_verification_required %}
+        <p class="parse-tip">注册后需要打开验证邮件中的链接，才能登录。</p>
+      {% else %}
+        <p class="parse-tip">邮箱仅作为登录名，本站不发送验证邮件，也不提供邮件找回密码。请妥善保存密码。</p>
+      {% endif %}
+      <label>邮箱 <input class="input" type="email" name="email" autocomplete="email" required></label>
+      <label>密码（12 至 128 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+      <label>确认密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="12" required></label>
+      {% if invite_required %}<label>邀请码 <input class="input" name="invite_code" required></label>{% endif %}
+    {% elif mode in ('forgot', 'resend') %}
+      <label>邮箱 <input class="input" type="email" name="email" autocomplete="email" required></label>
+    {% else %}
+      <input type="hidden" name="token" value="{{ reset_token }}">
+      <label>新密码（至少 12 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="12" required></label>
+      <label>确认新密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="12" required></label>
+    {% endif %}
+    <div class="settings-actions"><button class="btn" type="submit">{{ submit_label }}</button></div>
+  </form>
+  {% endif %}
+  {% if mode == 'login' %}<p>{% if request.app.state.settings.smtp_host %}<a href="/auth/forgot-password">忘记密码？</a> · <a href="/auth/resend-verification">重新发送验证邮件</a>{% endif %}{% if request.app.state.settings.registration_mode != 'closed' %}<a href="/auth/register">创建账号</a>{% endif %}</p>{% endif %}
+  {% if mode == 'register' and email_verification_required %}<p><a href="/auth/resend-verification">没有收到验证邮件？重新发送</a></p>{% endif %}
+</section>
+{% endblock %}

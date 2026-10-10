@@ -1,0 +1,167 @@
+/* Quiet transcript view: the strokes show which follow-up belongs to which question. */
+[data-experience-style="lines"] .experience-content { background: #fff; }
+[data-experience-style="lines"] .experience-question-list {
+  --tree-stroke: #9baecc;
+  --tree-gap: 22px;
+  max-width: 920px;
+  padding-left: 5px;
+}
+[data-experience-style="lines"] .experience-question-list.nested {
+  width: auto;
+  margin: 6px 0 0 13px;
+  padding-left: 0;
+}
+[data-experience-style="lines"] .experience-question {
+  margin: 0;
+  padding: 4px 0 11px var(--tree-gap);
+  border: 0;
+  background: transparent;
+}
+[data-experience-style="lines"] .experience-question::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 17px;
+  left: 0;
+  width: calc(var(--tree-gap) - 8px);
+  border-top: 1px solid var(--tree-stroke);
+  pointer-events: none;
+}
+[data-experience-style="lines"] .experience-question::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 1px solid var(--tree-stroke);
+  pointer-events: none;
+}
+[data-experience-style="lines"] .experience-question:last-child::after { bottom: auto; height: 18px; }
+[data-experience-style="lines"] .experience-question-top {
+  gap: 10px;
+  align-items: baseline;
+  min-height: 27px;
+  padding: 1px 0;
+}
+[data-experience-style="lines"] .experience-question-number { font-size: 13px; white-space: nowrap; }
+[data-experience-style="lines"] .experience-question-text { font-size: 15px; font-weight: 500; line-height: 1.65; }
+[data-experience-style="lines"] .experience-question-meta { margin: 1px 0 0; }
+[data-experience-style="lines"] .experience-answer {
+  margin: 8px 0 0;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid #cbd8ea;
+}
+[data-experience-style="lines"] .experience-answer.review { border-left-color: #9bcbb5; }
+[data-experience-style="lines"] .experience-answer.interviewer { border-left-color: #c6b5df; }
+[data-experience-style="lines"] .experience-answer.review strong { color: #287454; }
+[data-experience-style="lines"] .experience-question-actions {
+  gap: 12px;
+  margin: 4px 0 0;
+  opacity: .78;
+}
+[data-experience-style="lines"] .experience-question:hover > .experience-question-actions,
+[data-experience-style="lines"] .experience-question:focus-within > .experience-question-actions { opacity: 1; }
+[data-experience-style="lines"] .experience-question-actions details[open] { padding: 3px 0 10px; }
+[data-experience-style="lines"] .experience-question-actions .experience-small-form { max-width: 620px; }
+[data-experience-style="lines"] .experience-question-actions textarea { background: #fff; }
+[data-experience-style="lines"] .experience-question-list.chronological .experience-question {
+  --depth-step: 30px;
+  width: calc(100% - min(var(--question-depth), 8) * var(--depth-step));
+  margin-left: calc(min(var(--question-depth), 8) * var(--depth-step));
+  padding-bottom: 15px;
+}
+[data-experience-style="lines"] .experience-question-list.chronological .experience-question:not([data-depth="0"])::before {
+  left: calc(-1 * var(--depth-step));
+  width: calc(var(--depth-step) + var(--tree-gap) - 8px);
+}
+[data-experience-style="lines"] .experience-question-list.chronological .experience-question:not([data-depth="0"])::after {
+  left: calc(-1 * var(--depth-step));
+}
+[data-experience-style="lines"] .experience-question-list.chronological .experience-question:not(:last-child) {
+  border-bottom: 1px solid #e8edf5;
+}
+[data-experience-style="lines"] .experience-inline-add {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 0 8px var(--tree-gap);
+  list-style: none;
+}
+[data-experience-style="lines"] .experience-inline-add::before {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: 0;
+  width: calc(var(--tree-gap) - 8px);
+  border-top: 1px solid var(--tree-stroke);
+}
+[data-experience-style="lines"] .experience-inline-add::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 22px;
+  border-left: 1px solid var(--tree-stroke);
+}
+[data-experience-style="lines"] .experience-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 780px;
+}
+[data-experience-style="lines"] .experience-inline-form textarea {
+  flex: 1 1 260px;
+  min-width: 0;
+  min-height: 35px;
+  max-height: 180px;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 1px solid #b9c9df;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+[data-experience-style="lines"] .experience-inline-form textarea:focus {
+  border-bottom: 2px solid var(--primary);
+}
+[data-experience-style="lines"] .experience-inline-form select {
+  min-width: 90px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+[data-experience-style="lines"] .experience-inline-submit,
+[data-experience-style="lines"] .experience-inline-cancel {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+[data-experience-style="lines"] .experience-inline-cancel { color: var(--muted); font-weight: 400; }
+[data-experience-style="lines"] .experience-inline-submit:focus-visible,
+[data-experience-style="lines"] .experience-inline-cancel:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  [data-experience-style="lines"] .experience-question-list { --tree-gap: 17px; }
+  [data-experience-style="lines"] .experience-question-list.chronological .experience-question { --depth-step: 20px; }
+  [data-experience-style="lines"] .experience-question-list.nested { margin-left: 4px; }
+  [data-experience-style="lines"] .experience-question-text { font-size: 14px; }
+  [data-experience-style="lines"] .experience-inline-form { flex-wrap: wrap; gap: 6px 10px; }
+  [data-experience-style="lines"] .experience-inline-form textarea { flex-basis: 100%; }
+}

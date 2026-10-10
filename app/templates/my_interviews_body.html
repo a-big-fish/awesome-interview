@@ -1,0 +1,73 @@
+<section class="card schedule-group">
+    <div class="date-nav-row">
+      <a class="date-nav" href="/my-interviews?date={{ prev_date }}" aria-label="前一天">‹</a>
+      <h1 class="section-title">{{ selected_date }} {{ selected_weekday }}</h1>
+      <a class="date-nav" href="/my-interviews?date={{ next_date }}" aria-label="后一天">›</a>
+    </div>
+    <div class="date-tabs-row">
+      <div class="date-tabs">
+        {% for item in date_options %}
+        <a class="date-tab {% if item.date == selected_date %}active{% endif %}" href="/my-interviews?date={{ item.date }}">{{ item.label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="time-table">
+      <div class="time-grid-wrap" style="--hour-height: clamp(52px, 6.6vh, 84px); --start-hour: {{ start_hour }};">
+        <div class="time-labels">
+          {% for label in time_labels %}
+          <span class="time-label" style="top: calc(({{ label.minutes }} / 60 - var(--start-hour)) * var(--hour-height));">{{ label.text }}</span>
+          {% endfor %}
+        </div>
+        <div class="time-grid" data-now-grid data-calendar-date="{{ selected_date }}" data-time-zone="Asia/Shanghai" data-start-minute="{{ start_hour * 60 }}" data-end-minute="{{ end_hour * 60 }}" style="height: calc(({{ end_hour }} - {{ start_hour }}) * var(--hour-height));">
+          <div class="now-line" data-now-line {% if not show_now_line %}hidden{% endif %} style="top: calc(({{ now_minutes }} / 60 - var(--start-hour)) * var(--hour-height));"><span class="now-line-label">当前时间 {{ now_time }}</span></div>
+          {% for item in entries %}
+          <a class="event-card {{ item.status }}" href="/interviews/{{ item.id }}"
+             style="--start-min: {{ item.start_minutes }}; --duration: {{ item.duration_minutes }}; --column: {{ item.column }}; --columns: {{ item.columns }};">
+            <div class="event-head">
+              <span class="event-title">{{ item.display_name }}</span>
+              <span class="event-time">{{ item.start_time.strftime('%H:%M') }} - {{ item.end_time.strftime('%H:%M') }}</span>
+            </div>
+            <div class="event-meta">{{ item.platform }}<span class="meta-divider"> · </span>{{ item.room_number or '会议链接待补充' }}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% if not entries %}
+    <div class="empty-state">
+      <div class="empty-title">这一天暂无我的面试</div>
+      <p>在添加面试页粘贴邀请后，可选择“解析并添加到我的面试”。</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="card my-plan-panel">
+    <h2 class="group-title">面试计划</h2>
+    <section class="plan-group">
+      <h3 class="plan-group-title today">今日面试</h3>
+      {% if today_entries %}
+        {% for item in today_entries %}
+        <div class="entry-card card {{ item.status }}">
+          <a class="entry-card-stretch" href="/interviews/{{ item.id }}" aria-label="查看面试详情"></a>
+          <div class="entry-top"><span class="entry-time">{{ item.start_time.strftime('%H:%M') }}</span><span class="status-pill status-{{ item.status }}">{{ item.status_label }}</span>{% if item.meeting_url %}<a class="plan-join-meeting" href="{{ item.meeting_url }}" target="_blank" rel="noopener noreferrer">进入会议</a>{% endif %}</div>
+          <h4>{{ item.display_name }}</h4>
+          <div class="entry-meta"><span>{{ item.platform }}</span><span class="meta-divider">·</span><span>{{ item.room_number or '会议链接待补充' }}</span></div>
+        </div>
+        {% endfor %}
+      {% else %}<p class="muted-text">今日暂无面试</p>{% endif %}
+    </section>
+    <section class="plan-group">
+      <h3 class="plan-group-title finished">已结束</h3>
+      {% if finished_entries %}
+        {% for item in finished_entries %}
+        <div class="entry-card card {{ item.status }}">
+          <a class="entry-card-stretch" href="/interviews/{{ item.id }}" aria-label="查看面试详情"></a>
+          <div class="entry-top"><span class="entry-time">{{ item.start_time.strftime('%m-%d %H:%M') }}</span><span class="status-pill status-{{ item.status }}">{{ item.status_label }}</span>{% if item.meeting_url %}<a class="plan-join-meeting" href="{{ item.meeting_url }}" target="_blank" rel="noopener noreferrer">进入会议</a>{% endif %}</div>
+          <h4>{{ item.display_name }}</h4>
+          <div class="entry-meta"><span>{{ item.position or item.subject }}</span></div>
+        </div>
+        {% endfor %}
+      {% else %}<p class="muted-text">暂无记录</p>{% endif %}
+    </section>
+  </aside>

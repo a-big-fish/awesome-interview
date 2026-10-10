@@ -1,0 +1,41 @@
+/* The original card layout is kept as a selectable interview-note view. */
+[data-experience-style="cards"] .experience-question {
+  margin: 0 0 12px calc(min(var(--question-depth), 5) * 18px);
+  padding: 12px 14px 12px 18px;
+  border: 1px solid var(--border);
+  border-left: 3px solid #87a7e8;
+  border-radius: 10px;
+  background: #fff;
+}
+[data-experience-style="cards"] .experience-question:not([data-depth="0"]) { border-left-color: #b4c7ec; }
+[data-experience-style="cards"] .experience-question:not([data-depth="0"])::before {
+  content: "";
+  position: absolute;
+  top: -15px;
+  left: -17px;
+  width: 15px;
+  height: 32px;
+  border-left: 1px solid #b4c7ec;
+  border-bottom: 1px solid #b4c7ec;
+  border-bottom-left-radius: 6px;
+  pointer-events: none;
+}
+[data-experience-style="cards"] .experience-question-text { font-weight: 600; }
+[data-experience-style="cards"] .experience-question-meta { margin: 5px 0 0 34px; }
+[data-experience-style="cards"] .experience-answer {
+  margin: 10px 0 0 30px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f2f6fc;
+}
+[data-experience-style="cards"] .experience-answer.review { background: #f2f8f5; }
+[data-experience-style="cards"] .experience-answer.interviewer { background: #f6f1fb; }
+[data-experience-style="cards"] .experience-answer.review strong { color: #287454; }
+[data-experience-style="cards"] .experience-question-actions { margin: 10px 0 0 30px; }
+
+@media (max-width: 760px) {
+  [data-experience-style="cards"] .experience-question { margin-left: calc(min(var(--question-depth), 3) * 10px); }
+  [data-experience-style="cards"] .experience-question-actions,
+  [data-experience-style="cards"] .experience-answer,
+  [data-experience-style="cards"] .experience-question-meta { margin-left: 0; }
+}

@@ -1,0 +1,308 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>面试时间表 - 面试时间规划器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="brand">
+        <div class="brand-mark">面</div>
+        <span>面试时间规划器</span>
+      </div>
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">添加面试</a>
+        <a class="nav-link active" href="schedule.html">时间表</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="toolbar">
+        <div>
+          <h1 class="section-title">面试时间表</h1>
+          <p class="section-description">按 30 分钟一格展示，可在日期旁动态调整时间范围。12:00 - 13:00 为固定午休时间。</p>
+        </div>
+        <a class="btn" href="index.html">添加面试</a>
+      </div>
+
+      <div class="date-tabs-row">
+        <div class="date-tabs">
+          <a class="date-tab" href="#2026-09-02">09-02</a>
+          <a class="date-tab active" href="#2026-09-03">09-03</a>
+          <a class="date-tab" href="#2026-09-04">09-04</a>
+        </div>
+      </div>
+
+      <section class="card schedule-group" id="2026-09-02" hidden>
+        <div class="schedule-header">
+          <h2 class="group-title">
+            2026-09-02
+            <span class="weekday">星期三 · 1 场面试</span>
+          </h2>
+          <div class="range-picker" aria-label="设置时间范围">
+            <div class="time-combo">
+              <input type="text" data-range-start value="09:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+            <span>至</span>
+            <div class="time-combo">
+              <input type="text" data-range-end value="19:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-table">
+          <div class="time-grid-wrap" style="--hour-height: 96px; --start-hour: 9;">
+            <div class="time-labels">
+              <span class="time-label" style="top:0;">09:00</span>
+              <span class="time-label" style="top:48px;">09:30</span>
+              <span class="time-label" style="top:96px;">10:00</span>
+              <span class="time-label" style="top:144px;">10:30</span>
+              <span class="time-label" style="top:192px;">11:00</span>
+              <span class="time-label" style="top:240px;">11:30</span>
+              <span class="time-label" style="top:288px;">12:00</span>
+              <span class="time-label" style="top:336px;">12:30</span>
+              <span class="time-label" style="top:384px;">13:00</span>
+              <span class="time-label" style="top:432px;">13:30</span>
+              <span class="time-label" style="top:480px;">14:00</span>
+              <span class="time-label" style="top:528px;">14:30</span>
+              <span class="time-label" style="top:576px;">15:00</span>
+              <span class="time-label" style="top:624px;">15:30</span>
+              <span class="time-label" style="top:672px;">16:00</span>
+              <span class="time-label" style="top:720px;">16:30</span>
+              <span class="time-label" style="top:768px;">17:00</span>
+              <span class="time-label" style="top:816px;">17:30</span>
+              <span class="time-label" style="top:864px;">18:00</span>
+              <span class="time-label" style="top:912px;">18:30</span>
+              <span class="time-label" style="top:960px;">19:00</span>
+            </div>
+            <div class="time-grid" style="height:960px;">
+              <div class="lunch-block" aria-label="午休时间">
+                <span>午休 12:00 - 13:00</span>
+              </div>
+              <div class="tea-break-block" aria-label="茶歇时间">
+                <span>茶歇 16:00 - 16:30</span>
+              </div>
+              <a class="event-card upcoming" href="detail.html" style="--start-min:570; --duration:45; --column:1; --columns:1;">
+                <div class="event-title">张三 · 后端开发实习生</div>
+                <div class="event-meta">09:30 - 10:15 · 腾讯会议 · 519-880-100</div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-list">
+          <h3 class="card-list-title">卡片列表</h3>
+          <div class="entry-list">
+            <a class="entry-card upcoming card" href="detail.html">
+              <div class="entry-top">
+                <span class="entry-time">09:30 - 10:15</span>
+                <span class="status-pill status-upcoming">即将开始</span>
+              </div>
+              <h4 class="entry-candidate">张三</h4>
+              <div class="entry-meta">
+                <span>后端开发实习生</span>
+                <span class="meta-divider">·</span>
+                <span>腾讯会议</span>
+                <span class="meta-divider">·</span>
+                <span>519-880-100</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card schedule-group" id="2026-09-03">
+        <div class="schedule-header">
+          <h2 class="group-title">
+            2026-09-03
+            <span class="weekday">星期四 · 2 场面试</span>
+          </h2>
+          <div class="range-picker" aria-label="设置时间范围">
+            <div class="time-combo">
+              <input type="text" data-range-start value="09:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+            <span>至</span>
+            <div class="time-combo">
+              <input type="text" data-range-end value="19:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-table">
+          <div class="time-grid-wrap" style="--hour-height: 96px; --start-hour: 9;">
+            <div class="time-labels">
+              <span class="time-label" style="top:0;">09:00</span>
+              <span class="time-label" style="top:48px;">09:30</span>
+              <span class="time-label" style="top:96px;">10:00</span>
+              <span class="time-label" style="top:144px;">10:30</span>
+              <span class="time-label" style="top:192px;">11:00</span>
+              <span class="time-label" style="top:240px;">11:30</span>
+              <span class="time-label" style="top:288px;">12:00</span>
+              <span class="time-label" style="top:336px;">12:30</span>
+              <span class="time-label" style="top:384px;">13:00</span>
+              <span class="time-label" style="top:432px;">13:30</span>
+              <span class="time-label" style="top:480px;">14:00</span>
+              <span class="time-label" style="top:528px;">14:30</span>
+              <span class="time-label" style="top:576px;">15:00</span>
+              <span class="time-label" style="top:624px;">15:30</span>
+              <span class="time-label" style="top:672px;">16:00</span>
+              <span class="time-label" style="top:720px;">16:30</span>
+              <span class="time-label" style="top:768px;">17:00</span>
+              <span class="time-label" style="top:816px;">17:30</span>
+              <span class="time-label" style="top:864px;">18:00</span>
+              <span class="time-label" style="top:912px;">18:30</span>
+              <span class="time-label" style="top:960px;">19:00</span>
+            </div>
+            <div class="time-grid" style="height:960px;">
+              <div class="lunch-block" aria-label="午休时间">
+                <span>午休 12:00 - 13:00</span>
+              </div>
+              <div class="tea-break-block" aria-label="茶歇时间">
+                <span>茶歇 16:00 - 16:30</span>
+              </div>
+              <a class="event-card upcoming" href="detail.html" style="--start-min:600; --duration:30; --column:1; --columns:1;">
+                <div class="event-title">张三 · 后端开发实习生</div>
+                <div class="event-meta">10:00 - 10:30 · 腾讯会议 · 519-881-509</div>
+              </a>
+              <a class="event-card past" href="detail.html" style="--start-min:840; --duration:30; --column:1; --columns:1;">
+                <div class="event-title">李四 · 产品实习生</div>
+                <div class="event-meta">14:00 - 14:30 · 腾讯会议 · 519-882-510</div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-list">
+          <h3 class="card-list-title">卡片列表</h3>
+          <div class="entry-list">
+            <a class="entry-card upcoming card" href="detail.html">
+              <div class="entry-top">
+                <span class="entry-time">10:00 - 10:30</span>
+                <span class="status-pill status-upcoming">即将开始</span>
+              </div>
+              <h4 class="entry-candidate">张三</h4>
+              <div class="entry-meta">
+                <span>后端开发实习生</span>
+                <span class="meta-divider">·</span>
+                <span>腾讯会议</span>
+                <span class="meta-divider">·</span>
+                <span>519-881-509</span>
+              </div>
+            </a>
+            <a class="entry-card past card" href="detail.html">
+              <div class="entry-top">
+                <span class="entry-time">14:00 - 14:30</span>
+                <span class="status-pill status-past">已结束</span>
+              </div>
+              <h4 class="entry-candidate">李四</h4>
+              <div class="entry-meta">
+                <span>产品实习生</span>
+                <span class="meta-divider">·</span>
+                <span>腾讯会议</span>
+                <span class="meta-divider">·</span>
+                <span>519-882-510</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card schedule-group" id="2026-09-04" hidden>
+        <div class="schedule-header">
+          <h2 class="group-title">
+            2026-09-04
+            <span class="weekday">星期五 · 1 场面试</span>
+          </h2>
+          <div class="range-picker" aria-label="设置时间范围">
+            <div class="time-combo">
+              <input type="text" data-range-start value="09:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+            <span>至</span>
+            <div class="time-combo">
+              <input type="text" data-range-end value="19:00" aria-label="????" autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="combo-toggle" aria-label="????????" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6.5 8 10.5 12 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="combo-menu" hidden role="listbox" aria-label="??????"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="time-table">
+          <div class="time-grid-wrap" style="--hour-height: 96px; --start-hour: 9;">
+            <div class="time-labels">
+              <span class="time-label" style="top:0;">09:00</span>
+              <span class="time-label" style="top:48px;">09:30</span>
+              <span class="time-label" style="top:96px;">10:00</span>
+              <span class="time-label" style="top:144px;">10:30</span>
+              <span class="time-label" style="top:192px;">11:00</span>
+              <span class="time-label" style="top:240px;">11:30</span>
+              <span class="time-label" style="top:288px;">12:00</span>
+              <span class="time-label" style="top:336px;">12:30</span>
+              <span class="time-label" style="top:384px;">13:00</span>
+              <span class="time-label" style="top:432px;">13:30</span>
+              <span class="time-label" style="top:480px;">14:00</span>
+              <span class="time-label" style="top:528px;">14:30</span>
+              <span class="time-label" style="top:576px;">15:00</span>
+              <span class="time-label" style="top:624px;">15:30</span>
+              <span class="time-label" style="top:672px;">16:00</span>
+              <span class="time-label" style="top:720px;">16:30</span>
+              <span class="time-label" style="top:768px;">17:00</span>
+              <span class="time-label" style="top:816px;">17:30</span>
+              <span class="time-label" style="top:864px;">18:00</span>
+              <span class="time-label" style="top:912px;">18:30</span>
+              <span class="time-label" style="top:960px;">19:00</span>
+            </div>
+            <div class="time-grid" style="height:960px;">
+              <div class="lunch-block" aria-label="午休时间">
+                <span>午休 12:00 - 13:00</span>
+              </div>
+              <div class="tea-break-block" aria-label="茶歇时间">
+                <span>茶歇 16:00 - 16:30</span>
+              </div>
+              <a class="event-card" href="detail.html" style="--start-min:1020; --duration:45; --column:1; --columns:1;">
+                <div class="event-title">王五 · 前端开发实习生</div>
+                <div class="event-meta">17:00 - 17:45 · 腾讯会议 · 链接待补充</div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-list">
+          <h3 class="card-list-title">卡片列表</h3>
+          <div class="entry-list">
+            <a class="entry-card card" href="detail.html">
+              <div class="entry-top">
+                <span class="entry-time">17:00 - 17:45</span>
+                <span class="status-pill status-soon">即将开始</span>
+              </div>
+              <h4 class="entry-candidate">王五</h4>
+              <div class="entry-meta">
+                <span>前端开发实习生</span>
+                <span class="meta-divider">·</span>
+                <span>腾讯会议</span>
+                <span class="meta-divider">·</span>
+                <span>会议链接待补充</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <p class="footer-note">静态页面效果图，仅用于确认布局和交互样式。</p>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

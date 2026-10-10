@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}会议日程规划器{% endblock %}</title>
+  <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+  {% block styles %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <div class="page">
+    <header class="page-header">
+      {% block brand %}<a class="brand" href="/meetings/schedule" aria-label="会议日程">
+        <div class="brand-mark">会</div>
+        <span>会议日程</span>
+      </a>{% endblock %}
+      {% block navigation %}<nav class="page-nav">
+        <a class="nav-link" href="/">门户</a>
+        <a class="nav-link {% block nav_index %}{% endblock %}" href="/meetings/new">添加会议</a>
+        <a class="nav-link {% block nav_schedule %}{% endblock %}" href="/meetings/schedule">时间表</a>
+        <a class="nav-link" href="/meetings/settings">工作与休息时间</a>
+      </nav>{% endblock %}
+    </header>
+    <main class="{% block main_class %}{% endblock %}">{% block content %}{% endblock %}</main>
+  </div>
+  {% block scripts %}{% endblock %}
+  <script src="{{ asset_url('js/app.js') }}"></script>
+</body>
+</html>

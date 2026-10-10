@@ -1,0 +1,141 @@
+<section class="card interview-questions-panel" aria-label="面试问题记录" {% if experience and not standalone_experience|default(false) %}data-experience-editor data-experience-style="lines" data-experience-id="{{ experience.id }}" data-csrf-token="{{ request.state.csrf_token if request.app.state.settings.app_mode == 'public_personal' else '' }}"{% endif %}>
+  {% if standalone_experience|default(false) %}
+  <header class="interview-questions-header experience-editor-header"><h2 data-editor-heading>{{ '全文录入' if editor_mode == 'write' else '文件导入' if editor_mode == 'import' else '面试问题' }}</h2><p data-editor-description>{{ '左侧连续输入面经原文，右侧查看结构化预览；确认后加入草稿。' if editor_mode == 'write' else '左侧导入文件并核对提取文本，右侧检查解析结果。' if editor_mode == 'import' else '输入问题后失焦即加入草稿；双击问题或答案可直接编辑。' }}</p><button class="experience-edit-help" type="button" data-experience-edit-hint-open>编辑提示</button><nav class="experience-input-switch" aria-label="面经录入方式"><a href="/my-schedule/experiences/{{ experience.id }}" data-editor-mode-link="manual" {% if editor_mode == 'manual' %}aria-current="page"{% endif %}>逐题录入</a><a href="/my-schedule/experiences/{{ experience.id }}/write" data-editor-mode-link="write" {% if editor_mode == 'write' %}aria-current="page"{% endif %}>全文录入</a><a href="/my-schedule/experiences/{{ experience.id }}/import" data-editor-mode-link="import" {% if editor_mode == 'import' %}aria-current="page"{% endif %}>文件导入</a></nav></header>
+  {% else %}
+  <header class="interview-questions-header">
+    {% if selected_event %}<a class="interview-questions-back" href="/my-schedule/interviews?date_value={{ selected_date.isoformat() }}">‹ <span>返回面试计划</span></a>{% else %}<a class="interview-questions-back" href="/my-schedule/experiences">‹ <span>返回面经列表</span></a>{% endif %}
+    <div class="interview-questions-heading">
+      <span class="interview-questions-icon" aria-hidden="true">✎</span>
+      <div>
+        <div class="interview-questions-eyebrow">面试问题记录{% if selected_event %} <span class="status-pill status-{{ selected_event.status }}">{{ selected_event.status_label }}</span>{% endif %}</div>
+        <h1>{{ experience.title if experience else selected_event.display_name }}</h1>
+        <p>{% if selected_event %}{{ selected_event.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ selected_event.end_time.strftime('%H:%M') }}{% if selected_event.position %} · {{ selected_event.position }}{% endif %}{% elif experience.interviewed_at %}{{ experience.interviewed_at.strftime('%Y-%m-%d %H:%M') }}{% if experience.position %} · {{ experience.position }}{% endif %}{% else %}独立保存的个人面经{% endif %}</p>
+      </div>
+    </div>
+    <div class="interview-questions-links">
+      {% if selected_event %}<a href="/my-schedule/events/{{ selected_event.id }}">查看日程详情</a>{% if selected_event.meeting_url %}<a href="{{ selected_event.meeting_url }}" target="_blank" rel="noopener noreferrer">进入会议 ↗</a>{% endif %}{% endif %}
+      <a href="/my-schedule/experiences">全部面经</a>
+      {% if experience %}<a href="/my-schedule/experiences/{{ experience.id }}">面经信息</a><a data-experience-preview href="/my-schedule/experiences/{{ experience.id }}/export">预览与导出</a>{% endif %}
+    </div>
+    {% if experience %}<div class="experience-draft-toolbar"><span class="experience-draft-status" role="status">已保存 · 修改后每分钟自动保存</span><button class="btn secondary small" type="button" data-experience-save-now disabled>立即保存</button><div class="experience-style-switch" role="group" aria-label="问题展示样式"><span>展示样式</span><button type="button" data-experience-style-choice="lines" aria-pressed="true">线条</button><button type="button" data-experience-style-choice="cards" aria-pressed="false">卡片</button></div><nav class="experience-input-switch" aria-label="面经录入方式"><a href="/my-schedule/experiences/{{ experience.id }}">逐题录入</a><a href="/my-schedule/experiences/{{ experience.id }}/write">全文录入</a><a href="/my-schedule/experiences/{{ experience.id }}/import">文件导入</a></nav></div>{% endif %}
+    {% if saved %}<p class="experience-save-state" role="status">已保存</p>{% endif %}
+    {% if linked_event_missing %}<p class="experience-link-warning">关联的面试日程已不存在，面经仍可编辑和导出。</p>{% endif %}
+    {% if event_experiences and event_experiences|length > 1 %}<div class="experience-switcher">这场面试有 {{ event_experiences|length }} 份面经：{% for item in event_experiences %}<a href="/my-schedule/interviews/{{ selected_event.id }}?experience_id={{ item.id }}">{{ item.title }}</a>{% endfor %}</div>{% endif %}
+  </header>
+  {% endif %}
+
+  {% if not experience %}
+  <div class="interview-questions-thread">
+    <div class="interview-questions-empty">
+      <span class="interview-questions-empty-icon" aria-hidden="true">✎</span>
+      <h2>还没有问题记录</h2>
+      <p>创建一份面经，开始记录面试官的问题与追问。</p>
+      <form class="experience-create-inline" action="/my-schedule/experiences" method="post" data-experience-save>
+        {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+        <input type="hidden" name="linked_event_id" value="{{ selected_event.id }}">
+        <input type="hidden" name="title" value="{{ selected_event.display_name }}">
+        <input type="hidden" name="position" value="{{ selected_event.position or '' }}">
+        <button class="btn" type="submit">创建面经</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <script type="application/json" data-experience-seed>{{ draft_seed|tojson }}</script>
+  {% if standalone_experience|default(false) %}
+  <aside class="experience-parser-pane" data-parser-pane aria-label="{{ '全文录入' if editor_mode == 'write' else '文件导入' }}">
+    <h2 data-parser-heading>{{ '文件导入与解析' if editor_mode == 'import' else '全文录入' }}</h2><p data-parser-description>{{ '支持带标题和列表的 Markdown、含文字层的 PDF；提取后可以修正原文再解析。' if editor_mode == 'import' else '连续输入整份面经，停顿后自动更新右侧预览。' }}</p>
+    <div class="experience-parser-file-controls" data-parser-file-controls {% if editor_mode != 'import' %}hidden{% endif %}>
+      <label for="experience-parser-file">导入文件（.md / .pdf，最多 5 MB）</label>
+      <input id="experience-parser-file" data-parser-file type="file" accept=".md,.markdown,.pdf,text/markdown,application/pdf">
+      <button class="btn secondary" type="button" data-parser-file-preview>解析文件并预览</button>
+    </div>
+    <div data-parser-write-controls {% if editor_mode != 'write' %}hidden{% endif %}>
+    <p class="experience-format-summary">支持 <code>1、问题</code>、<code>2: 问题</code>、<code>3：问题</code>、<code>4，问题</code>、<code>5 问题</code>；用 <code>1.1 问题</code> 表示追问。问题下一行可直接写回答。</p>
+    <details class="experience-format-hint"><summary>查看完整输入示例</summary><pre class="experience-parser-example"># 后端开发一面
+公司：示例公司
+面试时间：2026-10-08 14:00
+1、介绍一下你的项目
+项目使用 Spring Boot，负责接口设计。
+1.1 遇到并发问题如何处理？
+使用限流和幂等校验。
+2：反问：团队如何做代码评审？
+面试官回答：每周集中评审。</pre></details>
+    </div>
+    <label for="experience-parser-source" data-parser-source-label>{{ '提取的原文（可修正）' if editor_mode == 'import' else '面经全文' }}</label>
+    <textarea id="experience-parser-source" data-parser-source maxlength="100000" spellcheck="false" placeholder="{{ '导入文件后将在这里显示提取的原文…' if editor_mode == 'import' else '从这里开始连续输入面经内容…' }}"></textarea>
+    <div class="experience-parser-actions"><button class="btn secondary" type="button" data-parser-preview>{{ '重新解析原文' if editor_mode == 'import' else '立即更新预览' }}</button><span data-parser-status role="status"></span></div>
+    <div data-parser-unrecognized hidden></div>
+  </aside>
+  <div class="experience-parser-preview" data-parser-preview-area>
+    <div class="experience-parser-preview-header"><strong>结构化预览 · 尚未加入草稿</strong><p>核对分类、追问关系和回答后再导入。</p></div>
+    <div class="experience-parser-empty" data-parser-empty>{{ '选择文件并解析后，结果会显示在这里。' if editor_mode == 'import' else '开始输入后，解析结果会显示在这里。' }}</div>
+    <div data-parser-preview-rows></div>
+    <div class="experience-parser-import" data-parser-import-area hidden><select data-parser-import-mode aria-label="导入方式"><option value="append">追加到现有问题</option><option value="replace">替换当前问题</option></select><button class="btn" type="button" data-parser-import>确认导入草稿</button></div>
+  </div>
+  {% endif %}
+  <div class="experience-tabs" aria-label="问题分类">
+    <button type="button" data-experience-category="all" class="experience-tab {% if category == 'all' %}active{% endif %}">全部 <span>{{ question_rows|length }}</span><small data-duration-badge></small></button>
+    {% for key, label in category_labels.items() %}
+    <button type="button" data-experience-category="{{ key }}" class="experience-tab {% if category == key %}active{% endif %}">{{ label }} <span>{{ question_rows|selectattr('question.category', 'equalto', key)|list|length }}</span><small data-duration-badge></small></button>
+    {% endfor %}
+    <button type="button" data-experience-category="feeling" class="experience-tab {% if category == 'feeling' %}active{% endif %}">面试感受</button>
+  </div>
+  <div class="experience-duration-bar"><label><span data-experience-duration-label>用时</span><input data-experience-duration type="number" min="0" max="1440" step="1" inputmode="numeric" placeholder="可选" aria-label="当前分类用时（分钟）"></label><span>分钟</span><small data-experience-duration-hint></small></div>
+  <div class="interview-questions-thread experience-content">
+    {% if standalone_experience|default(false) and editor_mode != 'manual' %}
+    {% elif not visible_rows %}
+    <div class="interview-questions-empty"><span class="interview-questions-empty-icon" aria-hidden="true">✎</span><h2>还没有问题记录</h2><p>可在下方记录主问题，再从题目下添加追问。</p></div>
+    {% else %}
+    <ol class="experience-question-list">
+    {% for row in visible_rows %}
+      {% set item = row.question %}
+      <li class="experience-question" data-depth="{{ row.depth }}" style="--question-depth: {{ row.depth }}" id="question-{{ item.id }}">
+        <div class="experience-question-top"><span class="experience-question-number">{{ row.number }}</span><span class="experience-question-text">{{ item.question_text }}</span></div>
+        {% if category == 'all' %}<div class="experience-question-meta">{{ category_labels[item.category] }}{% if row.parent_number %} · 追问 {{ row.parent_number }}{% endif %} · 第 {{ item.asked_order }} 问</div>{% endif %}
+        {% if item.category != 'reverse' and item.on_site_answer %}<div class="experience-answer"><strong>现场回答</strong><p>{{ item.on_site_answer }}</p></div>{% endif %}
+        {% if item.category != 'reverse' and item.review_answer %}<div class="experience-answer review"><strong>复盘答案</strong><p>{{ item.review_answer }}</p></div>{% endif %}
+        {% if item.category == 'reverse' and item.interviewer_answer %}<div class="experience-answer interviewer"><strong>面试官回答</strong><p>{{ item.interviewer_answer }}</p></div>{% endif %}
+        <div class="experience-question-actions">
+          <details><summary>添加追问</summary>
+            <form action="/my-schedule/experiences/{{ experience.id }}/questions" method="post" class="experience-small-form" data-experience-save>
+              {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+              <input type="hidden" name="parent_question_id" value="{{ item.id }}"><input type="hidden" name="category" value="{{ item.category }}">
+              <textarea name="question_text" aria-label="追问内容" placeholder="记录对 {{ row.number }} 的追问" required maxlength="2000"></textarea>
+              <button class="btn small" type="submit">保存追问</button>
+            </form>
+          </details>
+          <details><summary>编辑问题与回答</summary>
+            <form action="/my-schedule/experiences/{{ experience.id }}/questions/{{ item.id }}/edit" method="post" class="experience-small-form" data-experience-save>
+              {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+              <label>问题<textarea name="question_text" required maxlength="2000">{{ item.question_text }}</textarea></label>
+              {% if not item.parent_question_id %}<label>分类<select name="category">{% for key, label in category_labels.items() %}<option value="{{ key }}" {% if item.category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>{% else %}<input type="hidden" name="category" value="{{ item.category }}">{% endif %}
+              {% if item.category == 'reverse' %}<label>面试官回答<textarea name="interviewer_answer" rows="3" maxlength="20000">{{ item.interviewer_answer or '' }}</textarea></label>{% else %}<label>现场回答<textarea name="on_site_answer" rows="3" maxlength="20000">{{ item.on_site_answer or '' }}</textarea></label><label>复盘答案<textarea name="review_answer" rows="3" maxlength="20000">{{ item.review_answer or '' }}</textarea></label>{% endif %}
+              <button class="btn small" type="submit">保存修改</button>
+            </form>
+          </details>
+          {% if row.can_move_up %}<form action="/my-schedule/experiences/{{ experience.id }}/questions/{{ item.id }}/move" method="post">
+            {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+            <input type="hidden" name="direction" value="up"><button type="submit" class="experience-text-button">上移</button>
+          </form>{% endif %}
+          {% if row.can_move_down %}<form action="/my-schedule/experiences/{{ experience.id }}/questions/{{ item.id }}/move" method="post">
+            {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+            <input type="hidden" name="direction" value="down"><button type="submit" class="experience-text-button">下移</button>
+          </form>{% endif %}
+          <form action="/my-schedule/experiences/{{ experience.id }}/questions/{{ item.id }}/delete" method="post" onsubmit="return confirm('删除这道题及其所有追问？此操作不可撤销。')">
+            {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+            <button type="submit" class="experience-text-button danger">删除</button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+    </ol>
+    {% endif %}
+  </div>
+  <form class="interview-questions-composer experience-composer" action="/my-schedule/experiences/{{ experience.id }}/questions" method="post" data-experience-save>
+    {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+    <textarea rows="2" name="question_text" required maxlength="2000" aria-label="记录面试官的问题" placeholder="记录面试官提出的问题…"></textarea>
+    <select name="category" aria-label="问题分类">{% for key, label in category_labels.items() %}<option value="{{ key }}" {% if category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">加入草稿</button>
+  </form>
+  {% endif %}
+</section>

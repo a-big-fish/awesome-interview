@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}会议时间表 - 会议日程规划器{% endblock %}
+{% block nav_schedule %}active{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1 class="section-title">会议时间表</h1>
+    <p class="section-description">按 30 分钟一格展示 · {{ calendar_timezone }} · 斜纹区按企业时间设置显示。</p>
+  </div>
+  <div class="toolbar-actions"><a class="btn secondary" href="/meetings/settings">设置工作与休息时间</a><a class="btn" href="/meetings/new">添加会议</a></div>
+</div>
+
+<div class="overview-tabs">
+  <a class="overview-tab {% if overview == 'expired' %}active{% endif %}" href="/meetings/schedule?overview=expired">已过期面试（{{ overview_finished|length }}）</a>
+  <a class="overview-tab {% if overview == 'today' %}active{% endif %}" href="/meetings/schedule?overview=today">今天的面试（{{ overview_today|length }}）</a>
+  {% if overview %}
+  <a class="overview-back" href="/meetings/schedule?date={{ selected_date }}">← 返回时间表</a>
+  {% endif %}
+</div>
+
+{% if overview %}
+{% set overview_entries = overview_finished if overview == 'expired' else overview_today %}
+<section class="card schedule-group">
+  <div class="schedule-header">
+    <h2 class="group-title">
+      {{ '已过期面试' if overview == 'expired' else '今天的面试' }}
+      <span class="weekday">{{ overview_entries|length }} 场面试</span>
+    </h2>
+  </div>
+  <div class="overview-list">
+    {% if overview_entries %}
+    <div class="entry-list">
+      {% for item in overview_entries %}
+      <div class="entry-card {{ item.status }} card">
+        <a class="entry-card-stretch" href="/interviews/{{ item.id }}" aria-label="查看面试详情"></a>
+        <div class="entry-top">
+          <span class="entry-time">{{ item.start_time.strftime('%m-%d %H:%M') }} - {{ item.end_time.strftime('%H:%M') }}</span>
+          <span class="status-pill status-{{ item.status }}">{{ item.status_label }}</span>
+        </div>
+        <h4 class="entry-candidate">{{ item.display_name }}</h4>
+        <div class="entry-meta">
+          <span>{{ item.position or item.subject }}</span>
+          <span class="meta-divider">·</span><span>{{ item.platform }}</span>
+          <span class="meta-divider">·</span>{% if item.room_number %}<span>{{ item.room_number }}</span>
+          {% elif item.meeting_url %}<a class="overview-meeting-link" href="{{ item.meeting_url }}" target="_blank" rel="noopener noreferrer" title="{{ item.meeting_url }}">会议链接</a>
+          {% else %}<span>会议链接待补充</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-title">暂无相关面试</div>
+      <p>当前没有符合条件的面试安排。</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% else %}
+<div class="date-tabs-row">
+  <div class="date-tabs">
+    {% for item in date_options %}
+    <a class="date-tab {% if item.date == selected_date %}active{% endif %}" href="/meetings/schedule?date={{ item.date }}">{{ item.label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<section class="card schedule-group">
+  <div class="schedule-header">
+    <h2 class="group-title">
+      {{ selected_date }}
+      <span class="weekday">{{ selected_weekday }} · {{ entries|length }} 场安排</span>
+    </h2>
+    <form class="range-picker" method="get" action="/schedule" aria-label="设置时间范围">
+      <input type="hidden" name="date" value="{{ selected_date }}">
+      <select name="start_time" aria-label="开始时间">
+        {% for option in time_options %}
+        <option value="{{ option }}" {% if option == start_time %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+      <span>至</span>
+      <select name="end_time" aria-label="结束时间">
+        {% for option in time_options %}
+        <option value="{{ option }}" {% if option == end_time %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn secondary small" type="submit">应用</button>
+    </form>
+  </div>
+
+  <div class="time-table">
+    <div class="time-grid-wrap" style="--hour-height: {{ hour_height }}px; --start-hour: {{ start_hour }};">
+      <div class="time-labels">
+        {% for label in time_labels %}
+        <span class="time-label" style="top: {{ label.top }}px;">{{ label.text }}</span>
+        {% endfor %}
+      </div>
+      <div class="time-grid" data-now-grid data-calendar-date="{{ selected_date }}" data-time-zone="{{ calendar_timezone }}" data-start-minute="{{ (start_hour * 60)|int }}" data-end-minute="{{ (end_hour * 60)|int }}" style="height: {{ grid_height }}px;">
+        {% for block in shaded_blocks %}
+        <div class="calendar-shaded-block {{ block.kind }}" style="--block-start: {{ block.start_minutes }}; --block-duration: {{ block.duration_minutes }};"><span>{{ block.label }}</span></div>
+        {% endfor %}
+        <div class="now-line" data-now-line {% if not show_now_line %}hidden{% endif %} style="top: {{ now_top }}px;"><span class="now-line-label">当前时间 {{ now_time }}</span></div>
+        {% for item in entries %}
+        <a class="event-card {{ item.status }}" href="/interviews/{{ item.id }}"
+           style="--start-min: {{ item.start_minutes }}; --duration: {{ item.duration_minutes }}; --column: {{ item.column }}; --columns: {{ item.columns }};">
+          <div class="event-head">
+            <span class="event-title">{{ item.display_name }}</span>
+            <span class="event-time">{{ item.start_time.strftime('%H:%M') }} - {{ item.end_time.strftime('%H:%M') }}</span>
+          </div>
+          <div class="event-meta">{{ item.platform }}<span class="meta-divider"> · </span>{{ item.room_number or '会议链接待补充' }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card-list">
+    <h3 class="card-list-title">卡片列表</h3>
+    {% if entries %}
+    <div class="entry-list">
+      {% for item in entries %}
+      <a class="entry-card {{ item.status }} card" href="/interviews/{{ item.id }}">
+        <div class="entry-top">
+          <span class="entry-time">{{ item.start_time.strftime('%H:%M') }} - {{ item.end_time.strftime('%H:%M') }}</span>
+          <span class="status-pill status-{{ item.status }}">{{ item.status_label }}</span>
+        </div>
+        <h4 class="entry-candidate">{{ item.display_name }}</h4>
+        <div class="entry-meta">
+          <span>{{ item.position or item.subject }}</span>
+          <span class="meta-divider">·</span><span>{{ item.platform }}</span>
+          <span class="meta-divider">·</span><span>{{ item.room_number or '会议链接待补充' }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-title">这一天暂无安排</div>
+      <p>可以返回添加会议页粘贴会议邀请。</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

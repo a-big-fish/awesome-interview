@@ -1,0 +1,97 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>添加面试 - 面试时间规划器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="brand">
+        <div class="brand-mark">面</div>
+        <span>面试时间规划器</span>
+      </div>
+      <nav class="page-nav">
+        <a class="nav-link active" href="index.html">添加面试</a>
+        <a class="nav-link" href="schedule.html">时间表</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="card form-card" aria-labelledby="form-title">
+        <h1 class="section-title" id="form-title">粘贴会议邀请</h1>
+        <p class="section-description">系统会自动识别会议时间、会议软件、会议号和入会链接。</p>
+
+        <div style="margin-top: 22px;">
+          <label class="form-label" for="meeting-text">会议邀请文本</label>
+          <textarea id="meeting-text" class="textarea" placeholder="粘贴腾讯会议邀请文本，例如：&#10;&#10;会议主题：张三的面试&#10;会议时间：2026/09/03 10:00-10:30 (GMT+08:00) 中国标准时间 - 北京&#10;#腾讯会议：519-881-509">张三 邀请您参加腾讯会议
+会议主题：后端开发实习生张三的面试
+会议时间：2026/09/03 10:00-10:30 (GMT+08:00) 中国标准时间 - 北京
+
+点击链接入会，或添加至会议列表：
+https://meeting.tencent.com/dm/demo-meeting
+
+#腾讯会议：519-881-509
+
+复制该信息，打开手机腾讯会议即可参与</textarea>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label class="form-label" for="candidate-name">候选人姓名 <span class="optional">可选</span></label>
+            <input id="candidate-name" class="input" value="张三" placeholder="输入候选人姓名">
+          </div>
+          <div>
+            <label class="form-label" for="position">应聘岗位 <span class="optional">可选</span></label>
+            <input id="position" class="input" value="后端开发实习生" placeholder="输入应聘岗位">
+          </div>
+          <div>
+            <label class="form-label" for="interviewer">面试负责人 <span class="optional">可选，多人用逗号分隔</span></label>
+            <input id="interviewer" class="input" value="李经理, 王工" placeholder="输入面试负责人">
+          </div>
+        </div>
+
+                <div class="form-section">
+          <div class="form-section-title">
+            <span>简历解析</span>
+            <span class="section-tag">PDF</span>
+          </div>
+          <p class="section-description">支持拖拽上传简历 PDF，后续由简历解析模块提取文本、关键信息和图片。</p>
+
+          <div class="upload-zone" data-upload-zone role="button" tabindex="0" aria-label="拖拽或点击上传简历 PDF">
+            <div class="upload-icon">📄</div>
+            <div class="upload-title">拖拽简历 PDF 到此处</div>
+            <div class="upload-description">或点击选择文件 · 支持 .pdf</div>
+            <input type="file" accept=".pdf,application/pdf" data-file-input hidden>
+          </div>
+
+          <div class="file-list" data-file-list></div>
+
+          <div class="parse-result" data-parse-result hidden>
+            <div class="parse-result-title">简历解析预览</div>
+            <div class="parse-fields">
+              <div><strong>张三</strong>候选人姓名</div>
+              <div><strong>后端开发实习生</strong>应聘岗位</div>
+              <div><strong>138****0000</strong>联系电话</div>
+              <div><strong>zhangsan@example.com</strong>邮箱</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a class="btn secondary" href="schedule.html">查看时间表</a>
+          <button class="btn" type="button">解析并添加到时间表</button>
+        </div>
+
+        <div class="parse-tip">
+          <span>💡</span>
+          <span>解析失败时会保留原文，并提示缺少会议时间等无法识别的字段。会议号和入会链接允许为空。</span>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

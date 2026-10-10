@@ -1,0 +1,58 @@
+{% extends 'personal_base.html' %}
+{% block title %}{{ experience.title }} - 我的面经{% endblock %}
+{% block body_class %}page-wide personal-app personal-scroll-page{% endblock %}
+{% block main_class %}personal-experience-main{% endblock %}
+{% block content %}
+{% set standalone_experience = true %}
+<div class="experience-detail-page" data-experience-editor data-editor-mode="{{ editor_mode|default('manual') }}" data-experience-style="lines" data-experience-id="{{ experience.id }}" data-csrf-token="{{ request.state.csrf_token if request.app.state.settings.app_mode == 'public_personal' else '' }}">
+  <aside class="card experience-sidebar" aria-label="面经信息与设置">
+    <a class="interview-questions-back" href="/my-schedule/experiences">‹ 返回面经列表</a>
+    <div class="experience-sidebar-intro">
+      <span class="interview-questions-eyebrow">面试问题记录</span>
+      <h1>{{ experience.title }}</h1>
+      <div class="experience-feeling-preview" data-experience-feeling-preview {% if not experience.feeling %}hidden{% endif %}>{{ experience.feeling or '' }}</div>
+      <p>{% if experience.interviewed_at %}{{ experience.interviewed_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}{% if experience.position %} · {{ experience.position }}{% endif %}</p>
+    </div>
+    <nav class="experience-sidebar-links" aria-label="面经操作">
+      <a data-experience-preview href="/my-schedule/experiences/{{ experience.id }}/export">预览与导出</a>
+      <a href="/my-schedule/experiences">全部面经</a>
+    </nav>
+    <section class="experience-sidebar-section">
+      <h2>草稿</h2>
+      <p class="experience-draft-status" role="status">已保存 · 修改后每分钟自动保存</p>
+      <button class="btn secondary small" type="button" data-experience-save-now>保存面经并返回列表</button>
+      {% if saved %}<p class="experience-save-state" role="status">已保存</p>{% endif %}
+    </section>
+    <section class="experience-sidebar-section">
+      <h2>展示样式</h2>
+      <div class="experience-style-switch" role="group" aria-label="问题展示样式"><button type="button" data-experience-style-choice="lines" aria-pressed="true">线条</button><button type="button" data-experience-style-choice="cards" aria-pressed="false">卡片</button></div>
+    </section>
+    <section class="experience-sidebar-section">
+      <h2>面经信息与关联日程</h2>
+      {% if linked_event_missing %}<p class="experience-link-warning">关联的面试日程已不存在，面经仍可编辑和导出。</p>{% endif %}
+      <form action="/my-schedule/experiences/{{ experience.id }}/edit" method="post" class="experience-small-form" data-experience-settings-form>
+        {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+        <label>标题<input name="title" value="{{ experience.title }}" required maxlength="200"></label>
+        <label>公司（进入广场必填）<input name="company" value="{{ experience.company or '' }}" maxlength="200"></label>
+        <label>岗位<input name="position" value="{{ experience.position or '' }}" maxlength="200"></label>
+        <label>面试时间<input name="interviewed_at" type="datetime-local" value="{{ experience.interviewed_at.strftime('%Y-%m-%dT%H:%M') if experience.interviewed_at else '' }}"></label>
+        <label>面试轮次<select name="interview_round"><option value="">未填写</option>{% for round in ['一面', '二面', '三面', 'HR 面', '其他'] %}<option value="{{ round }}" {% if experience.interview_round == round %}selected{% endif %}>{{ round }}</option>{% endfor %}</select></label>
+        <label>可见性<select name="is_public"><option value="public" {% if experience.is_public %}selected{% endif %}>公开 · 登录用户可查看完整面经</option><option value="private" {% if not experience.is_public %}selected{% endif %}>私密 · 仅自己可见</option></select></label>
+        <label>关联面试<select name="linked_event_id"><option value="">不关联日程</option>{% for event in event_options %}<option value="{{ event.id }}" {% if experience.linked_event_id == event.id %}selected{% endif %}>{{ event.title }} · {{ event.start_at.strftime('%Y-%m-%d %H:%M') }}</option>{% endfor %}</select></label>
+        <button class="btn" type="submit">保存面经信息并返回</button>
+      </form>
+    </section>
+    <form class="experience-delete-form" action="/my-schedule/experiences/{{ experience.id }}/delete" method="post" onsubmit="return confirm('删除整份面经及所有问题？此操作不可撤销。')">
+      {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+      <button class="experience-text-button danger" type="submit">删除整份面经</button>
+    </form>
+  </aside>
+  {% include 'interview_experience_panel.html' %}
+  <dialog class="experience-edit-hint" data-experience-edit-hint aria-labelledby="experience-edit-hint-title">
+    <div class="experience-edit-hint-mark" aria-hidden="true">✎</div>
+    <h2 id="experience-edit-hint-title">双击即可编辑</h2>
+    <p>双击问题或已有答案，可直接在原位置修改。未填写的回答点击“添加现场回答”或“添加复盘答案”。</p>
+    <button class="btn" type="button" data-experience-edit-hint-close>知道了</button>
+  </dialog>
+</div>
+{% endblock %}

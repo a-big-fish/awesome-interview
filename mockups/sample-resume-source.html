@@ -1,0 +1,90 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>张三简历</title>
+<style>
+  @page { size: A4; margin: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; color: #172033; margin: 0; }
+  .page { padding: 42px 48px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #2458ff; padding-bottom:18px; }
+  .name { font-size:30px; font-weight:800; margin:0; }
+  .role { color:#2458ff; font-weight:700; margin:6px 0 0; }
+  .contact { color:#667085; font-size:12px; text-align:right; line-height:1.8; }
+  h2 { font-size:15px; margin:26px 0 10px; color:#172033; letter-spacing:.04em; }
+  .item { margin-bottom:14px; }
+  .item-title { display:flex; justify-content:space-between; font-weight:700; font-size:14px; }
+  .item-sub { color:#667085; font-size:12px; margin:2px 0 6px; }
+  ul { margin:0; padding-left:18px; color:#344054; font-size:12.5px; line-height:1.7; }
+  .skills { display:flex; flex-wrap:wrap; gap:8px; }
+  .skill { background:#eef3ff; color:#204199; padding:5px 10px; border-radius:999px; font-size:12px; }
+  .project { background:#f7f9fc; border:1px solid #e4e9f2; border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+  .project strong { display:block; margin-bottom:4px; }
+  .project span { color:#667085; font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <p class="name">张三</p>
+        <p class="role">后端开发实习生</p>
+      </div>
+      <div class="contact">
+        138****0000<br>
+        zhangsan@example.com<br>
+        上海 · 可到岗时间：两周内
+      </div>
+    </div>
+
+    <h2>教育经历</h2>
+    <div class="item">
+      <div class="item-title"><span>某某大学 · 计算机科学与技术</span><span>2023.09 - 2027.06</span></div>
+      <div class="item-sub">本科在读</div>
+      <ul>
+        <li>主修课程：数据结构、操作系统、计算机网络、数据库系统、软件工程。</li>
+        <li>GPA 3.7 / 4.0，专业排名前 15%。</li>
+      </ul>
+    </div>
+
+    <h2>实习经历</h2>
+    <div class="item">
+      <div class="item-title"><span>某某科技有限公司 · 后端开发实习生</span><span>2025.06 - 2025.12</span></div>
+      <ul>
+        <li>参与招聘管理系统后端接口开发，负责候选人简历上传、解析状态查询等模块。</li>
+        <li>使用 Python FastAPI 重构部分业务接口，平均响应时间下降约 28%。</li>
+        <li>编写 Pytest 单元测试，覆盖上传校验、解析异常和权限判断等关键路径。</li>
+      </ul>
+    </div>
+
+    <h2>项目经历</h2>
+    <div class="project">
+      <strong>校园活动管理平台</strong>
+      <span>2024.09 - 2025.01 · 后端负责人</span>
+      <ul>
+        <li>设计活动发布、报名、签到与数据统计模块，支持多角色权限管理。</li>
+        <li>使用 MySQL 与 Redis 缓存热点活动数据，高峰期页面查询稳定性提升明显。</li>
+      </ul>
+    </div>
+    <div class="project">
+      <strong>面试时间规划器</strong>
+      <span>2026.08 - 至今 · 个人项目</span>
+      <ul>
+        <li>解析腾讯会议邀请文本，提取时间、会议号与会议链接并生成课程表。</li>
+        <li>实现候选人简历 PDF 文本与图片提取，支持后续 AI 简历摘要扩展。</li>
+      </ul>
+    </div>
+
+    <h2>专业技能</h2>
+    <div class="skills">
+      <span class="skill">Python</span>
+      <span class="skill">FastAPI</span>
+      <span class="skill">MySQL</span>
+      <span class="skill">Redis</span>
+      <span class="skill">Docker</span>
+      <span class="skill">Git</span>
+      <span class="skill">PyMuPDF</span>
+    </div>
+  </div>
+</body>
+</html>

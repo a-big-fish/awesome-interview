@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}我的面试 - 会议日程规划器{% endblock %}
+{% block nav_my_interviews %}active{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+{% block main_class %}my-interviews-main{% endblock %}
+{% block content %}
+<div class="my-interview-layout">
+  <aside class="card my-resume-panel">
+    {% if resume_error %}
+    <div class="resume-panel-error"><span>⚠️</span><span>{{ resume_error }}</span></div>
+    {% endif %}
+    {% if my_resume %}
+    <form
+      action="/my/resume"
+      method="post"
+      enctype="multipart/form-data"
+      data-resume-upload-form
+      class="resume-replace-form"
+    >
+      <input id="my-resume-file-input" type="file" accept=".pdf,application/pdf" name="resume" data-file-input hidden>
+      <button class="btn secondary small" type="submit" data-file-select data-primary-submit>更换简历</button>
+    </form>
+    <div class="own-resume-a4">
+      <iframe
+        class="own-resume-frame"
+        src="/resumes/{{ my_resume.id }}/pdf"
+        title="我的简历 PDF 原件"
+      ></iframe>
+    </div>
+    {% else %}
+    <form action="/my/resume" method="post" enctype="multipart/form-data" data-resume-upload-form class="own-resume-upload">
+      <div class="upload-zone compact" data-upload-zone role="button" tabindex="0" aria-label="上传我的简历 PDF">
+        <div class="upload-icon">&#128196;</div>
+        <div class="upload-title">还没有我的简历</div>
+        <div class="upload-description">拖拽 PDF 到此处，或点击选择文件</div>
+        <input type="file" accept=".pdf,application/pdf" name="resume" data-file-input hidden>
+      </div>
+      <div class="file-list" data-file-list></div>
+      <p class="section-description">请先使用已下载到本地的 PDF 简历；浏览器在线预览文件无法直接拖入。</p>
+      <button class="btn small" type="submit" data-primary-submit>解析并使用</button>
+    </form>
+    {% endif %}
+  </aside>
+
+  <div class="my-interview-cols" data-date-scope>
+    {% include "my_interviews_body.html" %}
+  </div>
+</div>
+{% endblock %}

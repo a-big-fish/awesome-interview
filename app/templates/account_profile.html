@@ -1,0 +1,22 @@
+{% extends 'personal_base.html' %}
+{% block title %}个人设置 - Awesome Interview{% endblock %}
+{% block main_class %}account-profile-main{% endblock %}
+{% block content %}
+<div class="account-profile-page">
+  <header><h1>个人设置</h1><p>设置在面经广场展示的作者名称。</p></header>
+  <section class="card account-profile-card">
+    {% if saved %}<p class="account-profile-success" role="status">用户名已保存</p>{% endif %}
+    {% if error %}<p class="account-profile-error" role="alert">{{ error }}</p>{% endif %}
+    <form action="/my-schedule/profile" method="post">
+      <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+      <label for="account-display-name">用户名</label>
+      <input class="input" id="account-display-name" name="display_name" value="{{ entered_name if entered_name is defined else user.display_name or ('热心用户_' ~ user.email.split('@')[0][:3] if user.email else user.username or '') }}" maxlength="40" required autocomplete="nickname" placeholder="输入希望公开展示的名字">
+      <p class="account-profile-hint">1–40 个字符，允许与其他用户重名；修改后，已有公开面经也会显示新名字。</p>
+      <label for="account-email">登录邮箱</label>
+      <input class="input" id="account-email" type="text" value="{{ user.email or '未设置（管理员账号）' }}" disabled>
+      <p class="account-profile-hint">邮箱暂时不能修改。</p>
+      <button class="btn" type="submit">保存用户名</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

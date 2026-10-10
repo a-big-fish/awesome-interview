@@ -1,0 +1,75 @@
+{% extends 'personal_base.html' %}
+{% block title %}导出预览 - {{ experience.title }}{% endblock %}
+{% block main_class %}experience-export-main{% endblock %}
+{% block styles %}{{ super() }}<link rel="stylesheet" href="{{ asset_url('css/interview-experience-export.css') }}">{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ asset_url('js/interview_experience_export.js') }}" defer></script>{% endblock %}
+{% block content %}
+<div class="export-workspace">
+  <aside class="export-controls" aria-label="导出设置">
+    <a class="export-back" href="/my-schedule/experiences/{{ experience.id }}">‹ 返回面经</a>
+    <h1>导出预览</h1>
+    <p>这里的设置只影响本次预览和导出，不修改面经原始信息。</p>
+    <form class="export-settings-form" method="get" action="/my-schedule/experiences/{{ experience.id }}/export" data-export-settings>
+      <h2>排版样式</h2>
+      <div class="export-presets" role="group" aria-label="排版样式">
+        <label class="export-preset {% if style == 'lines' %}is-active{% endif %}"><input type="radio" name="style" value="lines" {% if style == 'lines' %}checked{% endif %}><strong>简洁线条</strong><span>按分类呈现，保留追问层级。</span></label>
+        <label class="export-preset {% if style == 'flat' %}is-active{% endif %}"><input type="radio" name="style" value="flat" {% if style == 'flat' %}checked{% endif %}><strong>扁平列表</strong><span>按实际提问顺序连续编号。</span></label>
+      </div>
+      <h2>导出信息</h2>
+      <label class="export-title-field">标题<input type="text" name="title" maxlength="200" value="{{ export_title or source_experience.title }}" placeholder="导出标题"></label>
+      <fieldset class="export-meta-fields"><legend>显示信息</legend>
+        <label><input type="checkbox" name="hide_company" value="true" {% if hide_company %}checked{% endif %}>隐藏公司</label>
+        <label><input type="checkbox" name="hide_position" value="true" {% if hide_position %}checked{% endif %}>隐藏岗位</label>
+        <label><input type="checkbox" name="hide_interviewed_at" value="true" {% if hide_interviewed_at %}checked{% endif %}>隐藏面试时间</label>
+      </fieldset>
+      <fieldset class="export-meta-fields"><legend>回答内容</legend>
+        <label><input type="checkbox" name="hide_on_site_answer" value="true" {% if hide_on_site_answer %}checked{% endif %}>隐藏现场回答</label>
+        <label><input type="checkbox" name="hide_review_answer" value="true" {% if hide_review_answer %}checked{% endif %}>隐藏复盘答案</label>
+        <label><input type="checkbox" name="hide_interviewer_answer" value="true" {% if hide_interviewer_answer %}checked{% endif %}>隐藏面试官回答</label>
+      </fieldset>
+      <button class="btn secondary export-hide-all" type="button" data-export-hide-answers-time>{% if hide_interviewed_at and hide_on_site_answer and hide_review_answer and hide_interviewer_answer %}显示所有回答和面试时间{% else %}隐藏所有回答和面试时间{% endif %}</button>
+      <button class="btn secondary export-apply" type="submit" data-export-preview>更新预览</button>
+      <h2>下载</h2>
+      <div class="export-downloads">
+        <button class="btn" type="submit" formaction="/my-schedule/experiences/{{ experience.id }}/export.pdf">下载 PDF</button>
+        <button class="btn secondary" type="submit" formaction="/my-schedule/experiences/{{ experience.id }}/export.md">下载 Markdown</button>
+      </div>
+      <button class="export-exact-link" type="submit" formaction="/my-schedule/experiences/{{ experience.id }}/export.pdf" formtarget="_blank" name="inline" value="true">查看 PDF 成品与分页 ↗</button>
+    </form>
+    <p class="export-help">下方展示排版与内容；长文的实际分页请查看 PDF 成品。Markdown 保留相同内容和顺序，文字外观由打开它的应用决定。</p>
+  </aside>
+
+  <div class="export-preview-wrap">
+    <div class="export-preview-label">A4 预览 · {{ '简洁线条' if style == 'lines' else '扁平列表' }}</div>
+    <article class="export-paper export-paper-{{ style }}" aria-label="面经导出内容预览">
+      <header class="export-paper-header">
+        <h2>{{ experience.title }}{% if total_minutes is not none %}<small class="export-total-minutes">总耗时（{{ total_minutes }} min）</small>{% endif %}</h2>
+        {% if experience.feeling %}<div class="export-paper-feeling"><strong>面试感受</strong><p>{{ experience.feeling }}</p></div>{% endif %}
+        {% if experience.company or experience.position or experience.interviewed_at %}<div class="export-paper-meta">
+          {% if experience.company %}<div>公司：{{ experience.company }}</div>{% endif %}
+          {% if experience.position %}<div>岗位：{{ experience.position }}</div>{% endif %}
+          {% if experience.interviewed_at %}<div>面试时间：{{ experience.interviewed_at.strftime('%Y-%m-%d %H:%M') }}</div>{% endif %}
+        </div>{% endif %}
+        {% if style == 'flat' and experience.category_minutes %}<div class="export-paper-meta">模块用时：{% for key, label in category_labels.items() %}{% if key in experience.category_minutes %}{{ section_heading(label, experience) }}{% if not loop.last %}　{% endif %}{% endif %}{% endfor %}</div>{% endif %}
+      </header>
+      {% if sections and sections[0][1] %}
+        {% for label, group in sections %}
+        <section class="export-paper-section">
+          {% if label %}<h3>{{ section_heading(label, experience) }}</h3>{% endif %}
+          <ol class="export-question-list">
+          {% for row in group %}
+            <li class="export-question" style="--export-depth:{{ [row.depth, 5]|min }}">
+              <div class="export-question-heading"><span class="export-number">{{ row.number if style == 'lines' else row.question.asked_order ~ '.' }}</span><span>{{ row.question.question_text }}{% if style == 'flat' and row.parent_number %}<small>（追问 {{ row.parent_number }}）</small>{% endif %}</span></div>
+              {% if row.question.category != 'reverse' and row.question.on_site_answer and not hide_on_site_answer %}<p class="export-answer"><b>现场回答</b>{{ row.question.on_site_answer }}</p>{% endif %}
+              {% if row.question.category != 'reverse' and row.question.review_answer and not hide_review_answer %}<p class="export-answer"><b>复盘答案</b>{{ row.question.review_answer }}</p>{% endif %}
+              {% if row.question.category == 'reverse' and row.question.interviewer_answer and not hide_interviewer_answer %}<p class="export-answer"><b>面试官回答</b>{{ row.question.interviewer_answer }}</p>{% endif %}
+            </li>
+          {% endfor %}
+          </ol>
+        </section>
+        {% endfor %}
+      {% else %}<p class="export-empty">这份面经还没有问题。返回面经添加后再预览导出。</p>{% endif %}
+    </article>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'personal_base.html' %}
+{% block title %}{{ experience.title }} - 面经广场{% endblock %}
+{% block main_class %}personal-experiences-main{% endblock %}
+{% block content %}
+<article class="card experience-public-detail">
+  <a href="/my-schedule/experiences/plaza">‹ 返回面经广场</a>
+  <header><span class="experience-plaza-card-kicker">公开面经{% if experience.interview_round %} · {{ experience.interview_round }}{% endif %}</span><h1>{{ experience.title }}</h1><p>{{ experience.company or '公司未填写' }} · {{ experience.position or '岗位未填写' }}{% if experience.interviewed_at %} · {{ experience.interviewed_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</p><p class="experience-public-author">作者：{{ author }}</p></header>
+  {% if experience.feeling %}<section class="experience-public-feeling"><h2>面试感受</h2><p>{{ experience.feeling }}</p></section>{% endif %}
+  {% for key, label in category_labels.items() %}{% set group = sections[key] %}{% if group %}
+  <section class="experience-public-section"><h2>{{ label }}{% if experience.category_minutes.get(key) is not none %}（{{ experience.category_minutes[key] }} min）{% endif %}</h2>
+    {% for row in group %}{% set question = row.question %}<div class="experience-public-question" style="--question-depth:{{ row.depth }}"><h3><span>{{ row.number }}</span> {{ question.question_text }}</h3>{% if question.on_site_answer %}<p><strong>现场回答</strong> {{ question.on_site_answer }}</p>{% endif %}{% if question.review_answer %}<p><strong>复盘答案</strong> {{ question.review_answer }}</p>{% endif %}{% if question.interviewer_answer %}<p><strong>面试官回答</strong> {{ question.interviewer_answer }}</p>{% endif %}</div>{% endfor %}
+  </section>{% endif %}{% endfor %}
+</article>
+{% endblock %}

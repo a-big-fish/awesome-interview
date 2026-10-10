@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}企业时间设置 - 会议日程规划器{% endblock %}
+{% block nav_schedule %}active{% endblock %}
+{% block content %}
+<section class="card enterprise-settings">
+  <div class="settings-heading">
+    <div>
+      <h1 class="section-title">工作与休息时间</h1>
+      <p class="section-description">按星期设置工作时段和斜纹休息区。落在这些时段的会议会提示，仍可确认保存。</p>
+    </div>
+    <a class="btn secondary" href="/meetings/schedule">返回时间表</a>
+  </div>
+  {% if saved %}<div class="parse-tip">设置已保存。</div>{% endif %}
+  {% if error %}<div class="parse-tip error">{{ error }}</div>{% endif %}
+  <form method="post" action="/meetings/settings" data-enterprise-settings-form>
+    <label class="form-label" for="calendar-timezone">显示时区</label>
+    <input id="calendar-timezone" class="input settings-timezone" name="timezone" value="{{ settings.timezone }}" required list="calendar-timezone-options">
+    <datalist id="calendar-timezone-options"><option value="Asia/Shanghai"><option value="Asia/Tokyo"><option value="Europe/London"><option value="America/New_York"></datalist>
+    <p class="section-description">输入 IANA 时区名称，例如 Asia/Shanghai。</p>
+
+    <div class="settings-days">
+    {% for weekday in range(7) %}
+      {% set day = settings.days[weekday] %}
+      <details class="settings-day" {% if weekday < 1 %}open{% endif %}>
+        <summary><strong>{{ weekday_names[weekday] }}</strong><span>{{ day.start.strftime('%H:%M') ~ '–' ~ day.end.strftime('%H:%M') if day.enabled else '休息日' }}</span></summary>
+        <div class="settings-day-content">
+          <label class="settings-toggle"><input type="checkbox" name="enabled_{{ weekday }}" {% if day.enabled %}checked{% endif %}> 工作日</label>
+          <div class="settings-time-row">
+            <label>上班时间 <input class="input" type="time" name="start_{{ weekday }}" value="{{ day.start.strftime('%H:%M') }}" required></label>
+            <label>下班时间 <input class="input" type="time" name="end_{{ weekday }}" value="{{ day.end.strftime('%H:%M') }}" required></label>
+          </div>
+          <h3>休息时段</h3>
+          <div class="settings-breaks" data-break-list="{{ weekday }}">
+          {% for item in day.breaks %}
+            <div class="settings-break-row">
+              <input class="input" name="break_name_{{ weekday }}" aria-label="休息名称" placeholder="名称" value="{{ item.name }}">
+              <input class="input" type="time" name="break_start_{{ weekday }}" aria-label="休息开始时间" value="{{ item.start.strftime('%H:%M') }}">
+              <input class="input" type="time" name="break_end_{{ weekday }}" aria-label="休息结束时间" value="{{ item.end.strftime('%H:%M') }}">
+              <select class="input" name="break_enabled_{{ weekday }}" aria-label="休息是否启用"><option value="on" {% if item.enabled %}selected{% endif %}>启用</option><option value="off" {% if not item.enabled %}selected{% endif %}>停用</option></select>
+              <button class="btn secondary small" type="button" data-remove-break>移除</button>
+            </div>
+          {% endfor %}
+          </div>
+          <button class="btn secondary small" type="button" data-add-break="{{ weekday }}">＋ 添加休息时段</button>
+        </div>
+      </details>
+    {% endfor %}
+    </div>
+    <div class="settings-actions"><button class="btn" type="submit">保存设置</button></div>
+  </form>
+</section>
+{% endblock %}

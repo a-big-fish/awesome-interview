@@ -24,7 +24,8 @@ def _safe_next(value: str) -> str:
 
 
 def _page(request: Request, mode: str, *, error: str = "", message: str = "",
-          next_path: str = DEFAULT_AFTER_LOGIN, reset_token: str = "", status_code: int = 200):
+          next_path: str = DEFAULT_AFTER_LOGIN, reset_token: str = "", identifier: str = "",
+          status_code: int = 200):
     labels = {
         "login": ("登录", "登录", "/auth/login"),
         "register": ("创建账号", "创建账号", "/auth/register"),
@@ -39,7 +40,7 @@ def _page(request: Request, mode: str, *, error: str = "", message: str = "",
         "heading": heading, "submit_label": submit_label, "action": action,
         "mode": mode, "error": error, "message": message,
         "csrf_token": csrf_token, "next_path": _safe_next(next_path),
-        "reset_token": reset_token,
+        "reset_token": reset_token, "identifier": identifier,
         "invite_required": request.app.state.settings.registration_mode == "invite",
         "email_verification_required": request.app.state.settings.email_verification_required,
     }, status_code=status_code)
@@ -63,29 +64,40 @@ def _allowed(request: Request, key: str, limit: int, minutes: int) -> bool:
     return request.app.state.auth_service.limiter.allow(key, limit, timedelta(minutes=minutes))
 
 
-@router.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, next: str = DEFAULT_AFTER_LOGIN):
-    return _page(request, "login", next_path=next)
-
-
-@router.post("/login", response_class=HTMLResponse)
-async def login(request: Request):
-    form = await _checked_form(request)
-    identifier = str(form.get("identifier", "")).strip().casefold()
-    if not _allowed(request, f"login:{identifier}", 10, 15):
-        return _page(request, "login", error="尝试次数过多，请稍后再试", status_code=429)
-    result = request.app.state.auth_service.login(identifier, str(form.get("password", "")))
-    if not result:
-        return _page(request, "login", error="账号或密码不正确，或邮箱尚未验证", status_code=401,
-                     next_path=str(form.get("next", "")))
-    _, raw_token, _ = result
-    response = RedirectResponse(_safe_next(str(form.get("next", ""))), status_code=303)
+def _signed_in_response(request: Request, raw_token: str, next_path: str = DEFAULT_AFTER_LOGIN):
+    response = RedirectResponse(_safe_next(next_path), status_code=303)
     response.set_cookie(SESSION_COOKIE, raw_token, max_age=7 * 24 * 3600,
                         httponly=True, secure=request.app.state.settings.auth_cookie_secure,
                         samesite="lax", path="/")
     response.delete_cookie(GUEST_CSRF_COOKIE, path="/")
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = DEFAULT_AFTER_LOGIN):
+    if request.app.state.auth_service.authenticate(request.cookies.get(SESSION_COOKIE)):
+        return RedirectResponse(_safe_next(next), status_code=303)
+    return _page(request, "login", next_path=next)
+
+
+@router.post("/login", response_class=HTMLResponse)
+async def login(request: Request):
+    try:
+        form = await _checked_form(request)
+    except HTTPException:
+        if request.app.state.auth_service.authenticate(request.cookies.get(SESSION_COOKIE)):
+            return RedirectResponse(DEFAULT_AFTER_LOGIN, status_code=303)
+        return _page(request, "login", error="登录表单已过期，请重新提交", status_code=403)
+    identifier = str(form.get("identifier", "")).strip().casefold()
+    if not _allowed(request, f"login:{identifier}", 10, 15):
+        return _page(request, "login", error="尝试次数过多，请稍后再试", status_code=429)
+    result = request.app.state.auth_service.login(identifier, str(form.get("password", "")))
+    if not result:
+        return _page(request, "login", error="账号或密码不正确，或邮箱尚未验证", status_code=401,
+                     next_path=str(form.get("next", "")), identifier=identifier)
+    _, raw_token, _ = result
+    return _signed_in_response(request, raw_token, str(form.get("next", "")))
 
 
 @router.post("/logout")
@@ -125,22 +137,27 @@ async def register(request: Request):
     if password != str(form.get("password_confirm", "")):
         return _page(request, "register", error="两次密码不一致", status_code=422)
     try:
-        request.app.state.auth_service.register(email, password, str(form.get("invite_code", "")))
+        user = request.app.state.auth_service.register(email, password, str(form.get("invite_code", "")))
     except ValueError as exc:
         return _page(request, "register", error=str(exc), status_code=422)
     except (OSError, smtplib.SMTPException):
         logger.exception("Registration verification email failed")
         return _page(request, "register", error="邮件发送失败，请稍后通过重新发送验证邮件重试", status_code=503)
     if not request.app.state.settings.email_verification_required:
-        return _page(request, "message", message="账号创建成功，请登录。")
+        if user is None:
+            raise HTTPException(status_code=409, detail="账号创建失败")
+        _, raw_token, _ = request.app.state.auth_service.start_session(user)
+        return _signed_in_response(request, raw_token)
     return _page(request, "message", message="如果该邮箱可以注册，请查收验证邮件。")
 
 
 @router.get("/verify", response_class=HTMLResponse)
 def verify_email(request: Request, token: str = ""):
-    valid = request.app.state.auth_service.verify_email(token) if token else False
-    message = "邮箱验证成功，请登录。" if valid else "验证链接已失效，请重新申请。"
-    return _page(request, "message", message=message, status_code=200 if valid else 400)
+    user = request.app.state.auth_service.verify_email(token) if token else None
+    if user:
+        _, raw_token, _ = request.app.state.auth_service.start_session(user)
+        return _signed_in_response(request, raw_token)
+    return _page(request, "message", message="验证链接已失效，请重新申请。", status_code=400)
 
 
 @router.post("/resend-verification", response_class=HTMLResponse)

@@ -107,7 +107,7 @@ class AuthService:
             raise LookupError("账号不存在")
         return user
 
-    def register(self, email: str, password: str, invite_code: str = "") -> None:
+    def register(self, email: str, password: str, invite_code: str = "") -> AuthUser | None:
         mode = self.settings.registration_mode
         if mode == "closed":
             raise ValueError("当前暂未开放注册")
@@ -126,9 +126,10 @@ class AuthService:
             existing = self.mapper.find_user(normalized)
             if existing and not existing.email_verified:
                 self._send_link(existing, "verify", "验证邮箱", timedelta(hours=24))
-            return
+            return None
         if self.settings.email_verification_required:
             self._send_link(user, "verify", "验证邮箱", timedelta(hours=24))
+        return user
 
     def send_verification(self, email: str) -> None:
         try:
@@ -138,12 +139,12 @@ class AuthService:
         if user and not user.email_verified:
             self._send_link(user, "verify", "验证邮箱", timedelta(hours=24))
 
-    def verify_email(self, token: str) -> bool:
+    def verify_email(self, token: str) -> AuthUser | None:
         user_id = self.mapper.consume_token(token_hash(token), "verify", datetime.now(timezone.utc))
         if not user_id:
-            return False
+            return None
         self.mapper.mark_verified(user_id)
-        return True
+        return self.mapper.get_user(user_id)
 
     def login(self, identifier: str, password: str) -> tuple[AuthUser, str, AuthSession] | None:
         normalized = identifier.strip().casefold()
@@ -155,6 +156,10 @@ class AuthService:
         if (not user or (user.email and not user.email_verified
                          and not user.can_login_without_email_verification) or user.is_disabled):
             return None
+        return self.start_session(user)
+
+    def start_session(self, user: AuthUser) -> tuple[AuthUser, str, AuthSession]:
+        """Create a session after password login, registration, or email verification."""
         raw_token = secrets.token_urlsafe(32)
         session = AuthSession(
             token_hash=token_hash(raw_token),

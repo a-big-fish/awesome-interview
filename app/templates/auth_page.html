@@ -11,7 +11,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     {% if mode == 'login' %}
       <input type="hidden" name="next" value="{{ next_path }}">
-      <label>邮箱或用户名 <input class="input" name="identifier" autocomplete="username" required></label>
+      <label>邮箱或用户名 <input class="input" name="identifier" value="{{ identifier }}" autocomplete="username" required></label>
       <label>密码 <input class="input" type="password" name="password" autocomplete="current-password" required></label>
     {% elif mode == 'register' %}
       {% if email_verification_required %}

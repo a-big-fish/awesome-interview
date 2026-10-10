@@ -170,9 +170,13 @@ def test_account_registration_verification_reset_and_logout(tmp_path):
             "identifier": "user@example.com", "password": "LongRandomPassword123!",
         }).status_code == 401
         verify_token = re.search(r"token=([\w-]+)", mailer.messages[-1][1]).group(1)
-        assert client.get(f"/auth/verify?token={verify_token}").status_code == 200
+        verified = client.get(f"/auth/verify?token={verify_token}", follow_redirects=False)
+        assert verified.status_code == 303
+        assert verified.headers["location"] == "/my-schedule/experiences/plaza"
+        assert client.get("/my-schedule/experiences/plaza").status_code == 200
         assert client.get(f"/auth/verify?token={verify_token}").status_code == 400
-        csrf = _login(client, "user@example.com", "LongRandomPassword123!")
+        assert client.get("/auth/login", follow_redirects=False).status_code == 303
+        csrf = _csrf(client.get("/my-schedule/new"))
         assert client.post("/auth/logout", data={"csrf_token": "wrong"}).status_code == 403
         assert client.post("/auth/logout", data={"csrf_token": csrf}, follow_redirects=False).status_code == 303
         assert client.get("/my-schedule", follow_redirects=False).status_code == 303
@@ -299,17 +303,39 @@ def test_direct_email_registration_without_verification_or_mail(tmp_path):
             "csrf_token": _csrf(page), "email": "Trial@example.com",
             "password": "long-test-password-123", "password_confirm": "long-test-password-123",
         }
-        created = client.post("/auth/register", data=form)
-        assert created.status_code == 200
-        assert "账号创建成功" in created.text
+        created = client.post("/auth/register", data=form, follow_redirects=False)
+        assert created.status_code == 303
+        assert created.headers["location"] == "/my-schedule/experiences/plaza"
+        assert client.get("/my-schedule/experiences/plaza").status_code == 200
         account = mapper.find_user("trial@example.com")
         assert account.email_verified is False
         assert account.can_login_without_email_verification is True
         assert account.display_name == "热心用户_tri"
         assert account.created_at is not None
         assert mailer.messages == []
-        duplicate = client.post("/auth/register", data=form)
+        csrf = _csrf(client.get("/my-schedule/new"))
+        assert client.post("/auth/logout", data={"csrf_token": csrf}, follow_redirects=False).status_code == 303
+        duplicate = client.post("/auth/register", data={**form, "csrf_token": _csrf(client.get("/auth/register"))})
         assert duplicate.status_code == 422
         _login(client, "trial@example.com", "long-test-password-123")
         assert client.get("/auth/forgot-password").status_code == 404
         assert client.get("/auth/resend-verification").status_code == 404
+
+
+def test_expired_login_form_renders_new_form_instead_of_raw_error(tmp_path):
+    app, mapper, _, _, _, _ = _public_fixture(tmp_path, email_verification_required=False)
+    user = AuthUser(email="stale@example.com", password_hash=hash_password("stale-password-123"),
+                    can_login_without_email_verification=True)
+    mapper.create_user(user)
+    with TestClient(app, base_url="https://testserver") as client:
+        stale = client.post("/auth/login", data={
+            "csrf_token": "expired", "identifier": user.email, "password": "stale-password-123",
+        })
+        assert stale.status_code == 403
+        assert "登录表单已过期，请重新提交" in stale.text
+        assert 'name="csrf_token"' in stale.text
+        login = client.post("/auth/login", data={
+            "csrf_token": _csrf(stale), "identifier": user.email, "password": "stale-password-123",
+        }, follow_redirects=False)
+        assert login.status_code == 303
+        assert login.headers["location"] == "/my-schedule/experiences/plaza"

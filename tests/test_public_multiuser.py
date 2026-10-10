@@ -154,20 +154,20 @@ def test_account_registration_verification_reset_and_logout(tmp_path):
         form = client.get("/auth/register")
         created = client.post("/auth/register", data={
             "csrf_token": _csrf(form), "email": "USER@example.com",
-            "password": "LongRandomPassword123!", "password_confirm": "LongRandomPassword123!",
+            "password": "LongPassword123!", "password_confirm": "LongPassword123!",
         })
         assert created.status_code == 200
         assert mailer.messages[0][0] == "user@example.com"
         duplicate = client.post("/auth/register", data={
             "csrf_token": _csrf(client.get("/auth/register")),
-            "email": "user@example.com", "password": "AnotherLongPassword123!",
-            "password_confirm": "AnotherLongPassword123!",
+            "email": "user@example.com", "password": "OtherPassword123!",
+            "password_confirm": "OtherPassword123!",
         })
         assert duplicate.status_code == 200
         assert len(mailer.messages) == 2
         assert client.post("/auth/login", data={
             "csrf_token": _csrf(client.get("/auth/login")),
-            "identifier": "user@example.com", "password": "LongRandomPassword123!",
+            "identifier": "user@example.com", "password": "LongPassword123!",
         }).status_code == 401
         verify_token = re.search(r"token=([\w-]+)", mailer.messages[-1][1]).group(1)
         verified = client.get(f"/auth/verify?token={verify_token}", follow_redirects=False)
@@ -188,9 +188,9 @@ def test_account_registration_verification_reset_and_logout(tmp_path):
         reset = client.get(f"/auth/reset-password?token={reset_token}")
         assert client.post("/auth/reset-password", data={
             "csrf_token": _csrf(reset), "token": reset_token,
-            "password": "AnotherStrongPassword123!", "password_confirm": "AnotherStrongPassword123!",
+            "password": "NewPassword123!", "password_confirm": "NewPassword123!",
         }, follow_redirects=False).status_code == 303
-        _login(client, "user@example.com", "AnotherStrongPassword123!")
+        _login(client, "user@example.com", "NewPassword123!")
 
 
 def test_events_and_resume_files_are_owner_scoped(tmp_path):
@@ -301,7 +301,7 @@ def test_direct_email_registration_without_verification_or_mail(tmp_path):
         assert "邮箱仅作为登录名" in page.text
         form = {
             "csrf_token": _csrf(page), "email": "Trial@example.com",
-            "password": "long-test-password-123", "password_confirm": "long-test-password-123",
+            "password": "test-password-123", "password_confirm": "test-password-123",
         }
         created = client.post("/auth/register", data=form, follow_redirects=False)
         assert created.status_code == 303
@@ -317,9 +317,40 @@ def test_direct_email_registration_without_verification_or_mail(tmp_path):
         assert client.post("/auth/logout", data={"csrf_token": csrf}, follow_redirects=False).status_code == 303
         duplicate = client.post("/auth/register", data={**form, "csrf_token": _csrf(client.get("/auth/register"))})
         assert duplicate.status_code == 422
-        _login(client, "trial@example.com", "long-test-password-123")
+        _login(client, "trial@example.com", "test-password-123")
         assert client.get("/auth/forgot-password").status_code == 404
         assert client.get("/auth/resend-verification").status_code == 404
+
+
+def test_new_password_length_limits_apply_to_registration_and_reset(tmp_path):
+    app, mapper, _, _, _, _ = _public_fixture(tmp_path, email_verification_required=False)
+    with TestClient(app, base_url="https://testserver") as client:
+        for length, expected_status in ((5, 422), (6, 303), (20, 303), (21, 422)):
+            email = f"length-{length}@example.com"
+            page = client.get("/auth/register")
+            assert 'minlength="6" maxlength="20"' in page.text
+            response = client.post("/auth/register", data={
+                "csrf_token": _csrf(page), "email": email,
+                "password": "p" * length, "password_confirm": "p" * length,
+            }, follow_redirects=False)
+            assert response.status_code == expected_status
+            assert (mapper.find_user(email) is not None) == (expected_status == 303)
+
+    verified_app, verified_mapper, mailer, _, _, _ = _public_fixture(tmp_path)
+    user = AuthUser(email="reset-length@example.com", password_hash=hash_password("old-password"),
+                    email_verified=True)
+    verified_mapper.create_user(user)
+    verified_app.state.auth_service.request_password_reset(user.email)
+    token = re.search(r"token=([\w-]+)", mailer.messages[-1][1]).group(1)
+    with TestClient(verified_app, base_url="https://testserver") as client:
+        for length, expected_status in ((5, 422), (21, 422), (6, 303)):
+            page = client.get(f"/auth/reset-password?token={token}")
+            assert 'minlength="6" maxlength="20"' in page.text
+            response = client.post("/auth/reset-password", data={
+                "csrf_token": _csrf(page), "token": token,
+                "password": "n" * length, "password_confirm": "n" * length,
+            }, follow_redirects=False)
+            assert response.status_code == expected_status
 
 
 def test_expired_login_form_renders_new_form_instead_of_raw_error(tmp_path):

@@ -104,7 +104,7 @@ def main() -> None:
     if not existing:
         if credentials_path.exists():
             raise SystemExit(f"初始密码文件已存在，请先核对：{credentials_path}")
-        new_password = secrets.token_urlsafe(36)
+        new_password = secrets.token_urlsafe(15)
         descriptor = os.open(credentials_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(descriptor, "w", encoding="utf-8") as file:
             file.write(f"账号：admin\n密码：{new_password}\n")

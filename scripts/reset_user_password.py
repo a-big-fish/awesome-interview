@@ -26,7 +26,7 @@ def main() -> None:
     if not user:
         raise SystemExit("未找到该账号")
 
-    password = secrets.token_urlsafe(36)
+    password = secrets.token_urlsafe(15)
     path = Path("data/password-resets") / f"{user.id}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.txt"
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)

@@ -58,8 +58,8 @@ class AttemptLimiter:
 
 
 def hash_password(password: str) -> str:
-    if len(password) < 12 or len(password) > 128:
-        raise ValueError("密码须为 12 至 128 个字符")
+    if len(password) < 6 or len(password) > 128:
+        raise ValueError("密码须为 6 至 128 个字符")
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=16384, r=8, p=1)
     return f"scrypt$16384$8$1${salt.hex()}${digest.hex()}"
@@ -79,6 +79,12 @@ def verify_password(password: str, stored: str) -> bool:
 
 def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def validate_new_password(password: str) -> None:
+    """Apply the current account policy without blocking existing long passwords."""
+    if len(password) < 6 or len(password) > 20:
+        raise ValueError("密码须为 6 至 20 个字符")
 
 
 class AuthService:
@@ -114,6 +120,7 @@ class AuthService:
         if mode == "invite" and not hmac.compare_digest(invite_code, self.settings.registration_invite_code):
             raise ValueError("邀请码无效")
         normalized = self.normalize_email(email)
+        validate_new_password(password)
         password_hash = hash_password(password)
         user = AuthUser(
             email=normalized, password_hash=password_hash,
@@ -190,6 +197,7 @@ class AuthService:
             self._send_link(user, "reset", "重置密码", timedelta(minutes=30))
 
     def reset_password(self, token: str, new_password: str) -> bool:
+        validate_new_password(new_password)
         password_hash = hash_password(new_password)
         user_id = self.mapper.consume_token(token_hash(token), "reset", datetime.now(timezone.utc))
         if not user_id:

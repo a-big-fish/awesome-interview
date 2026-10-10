@@ -19,7 +19,7 @@ def main() -> None:
     if not admin or not admin.is_admin:
         raise SystemExit("未找到 admin 管理员账号")
 
-    password = secrets.token_urlsafe(36)
+    password = secrets.token_urlsafe(15)
     path = Path("data") / f"admin-credentials-{datetime.now().strftime('%Y%m%d-%H%M%S')}.txt"
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)

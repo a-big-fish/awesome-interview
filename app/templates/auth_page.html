@@ -20,15 +20,15 @@
         <p class="parse-tip">邮箱仅作为登录名，本站不发送验证邮件，也不提供邮件找回密码。请妥善保存密码。</p>
       {% endif %}
       <label>邮箱 <input class="input" type="email" name="email" autocomplete="email" required></label>
-      <label>密码（12 至 128 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
-      <label>确认密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="12" required></label>
+      <label>密码（6 至 20 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="6" maxlength="20" required></label>
+      <label>确认密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="6" maxlength="20" required></label>
       {% if invite_required %}<label>邀请码 <input class="input" name="invite_code" required></label>{% endif %}
     {% elif mode in ('forgot', 'resend') %}
       <label>邮箱 <input class="input" type="email" name="email" autocomplete="email" required></label>
     {% else %}
       <input type="hidden" name="token" value="{{ reset_token }}">
-      <label>新密码（至少 12 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="12" required></label>
-      <label>确认新密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="12" required></label>
+      <label>新密码（6 至 20 个字符） <input class="input" type="password" name="password" autocomplete="new-password" minlength="6" maxlength="20" required></label>
+      <label>确认新密码 <input class="input" type="password" name="password_confirm" autocomplete="new-password" minlength="6" maxlength="20" required></label>
     {% endif %}
     <div class="settings-actions"><button class="btn" type="submit">{{ submit_label }}</button></div>
   </form>

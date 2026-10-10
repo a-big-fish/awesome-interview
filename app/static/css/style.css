@@ -55,20 +55,18 @@ a.brand {
   text-decoration: none;
 }
 
-a.brand:hover .brand-mark {
-  box-shadow: 0 6px 18px rgb(36 88 255 / 22%);
+a.brand:hover .brand-logo {
+  filter: drop-shadow(0 4px 8px rgb(36 88 255 / 22%));
 }
 
-.brand-mark {
+.brand-logo {
   width: 38px;
   height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #2458ff, #6d8dff);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 16px;
+  flex: 0 0 38px;
+  object-fit: contain;
 }
+
+.portal-wordmark { display: block; width: min(100%, 320px); height: auto; margin-bottom: 18px; }
 
 .page-nav {
   display: flex;
@@ -853,7 +851,7 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
     box-shadow: 0 3px 14px rgb(23 32 51 / 7%);
   }
   body.personal-app .page-header .brand { min-width: 0; font-size: clamp(16px, 3.3vw, 20px); white-space: nowrap; }
-  body.personal-app .page-header .brand-mark { flex: 0 0 38px; }
+  body.personal-app .page-header .brand-logo { flex: 0 0 38px; }
   body.personal-app .page-header .mobile-nav-toggle {
     display: flex;
     width: 42px;

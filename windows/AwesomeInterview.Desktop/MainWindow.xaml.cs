@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         Timeout = TimeSpan.FromSeconds(12)
     };
     private readonly Forms.NotifyIcon _tray;
+    private readonly System.Drawing.Icon _appIcon;
     private readonly DispatcherTimer _fallbackTimer = new() { Interval = TimeSpan.FromSeconds(15) };
     private readonly DispatcherTimer _syncTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _writeSyncTimer = new() { Interval = TimeSpan.FromSeconds(2) };
@@ -50,9 +51,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _firedKeys = _store.ReadFiredKeys();
+        using var iconStream = System.Windows.Application.GetResourceStream(
+            new Uri("pack://application:,,,/Assets/app.ico"))!.Stream;
+        _appIcon = new System.Drawing.Icon(iconStream);
         _tray = new Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = _appIcon,
             Text = "Awesome Interview",
             Visible = true,
             ContextMenuStrip = new Forms.ContextMenuStrip()
@@ -73,6 +77,7 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             _tray.Dispose();
+            _appIcon.Dispose();
             _http.Dispose();
             if (_notificationRegistered) AppNotificationManager.Default.Unregister();
         };

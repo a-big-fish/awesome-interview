@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}会议日程规划器{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ asset_url('img/logo2.png') }}">
   <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
   {% block styles %}{% endblock %}
 </head>
@@ -11,7 +12,7 @@
   <div class="page">
     <header class="page-header">
       {% block brand %}<a class="brand" href="/meetings/schedule" aria-label="会议日程">
-        <div class="brand-mark">会</div>
+        <img class="brand-logo" src="{{ asset_url('img/logo2.png') }}" alt="" width="38" height="38">
         <span>会议日程</span>
       </a>{% endblock %}
       {% block navigation %}<nav class="page-nav">

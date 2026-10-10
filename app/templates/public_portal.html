@@ -3,7 +3,7 @@
 {% block navigation %}<nav class="page-nav"><a class="nav-link" href="/auth/login">登录</a>{% if request.app.state.settings.registration_mode != 'closed' %}<a class="nav-link" href="/auth/register">注册</a>{% endif %}</nav>{% endblock %}
 {% block content %}
 <section class="card personal-form-page">
-  <h1 class="section-title">Awesome Interview</h1>
+  <h1 class="section-title"><img class="portal-wordmark" src="{{ asset_url('img/logo1.png') }}" alt="Awesome Interview"></h1>
   <p class="section-description">记录面经、浏览面经广场，也可安排面试和个人日程。</p>
   <div class="settings-actions"><a class="btn" href="/auth/login">登录并进入面经广场</a>{% if request.app.state.settings.registration_mode != 'closed' %}<a class="btn secondary" href="/auth/register">创建账号</a>{% endif %}</div>
 </section>

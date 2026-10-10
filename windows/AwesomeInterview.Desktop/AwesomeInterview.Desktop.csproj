@@ -14,8 +14,11 @@
     <AssemblyName>AwesomeInterview</AssemblyName>
     <Version>1.0.0-W</Version>
     <Product>Awesome Interview for Windows</Product>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\logo1.png" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
   </ItemGroup>

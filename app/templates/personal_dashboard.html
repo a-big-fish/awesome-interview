@@ -31,13 +31,13 @@
           <a class="event-card type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}"
              style="--start-min: {{ item.start_minutes }}; --duration: {{ item.duration_minutes }}; --column: {{ item.column }}; --columns: {{ item.columns }};">
             <div class="event-head"><span class="event-title">{{ item.title }}</span><span>{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</span></div>
-            <div class="event-meta">{{ item.type_label }}{% if item.location_text %} · {{ item.location_text }}{% endif %}</div>
+            <div class="event-meta">{{ item.type_label }}{% if item.location_text %} · {{ item.location_text }}{% endif %}{% if item.continues_before %} · 从前一天延续{% endif %}{% if item.continues_after %} · 延续到次日{% endif %}</div>
           </a>
           {% endfor %}
         </div>
       </div>
     </div>
-    <div class="personal-event-list">
+    <div class="personal-event-list{% if entries %} has-timeline-events{% endif %}">
     {% for item in entries %}
       <a class="personal-event-card type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}">
         <span class="personal-type-pill">{{ item.type_label }}</span>
@@ -60,7 +60,7 @@
         </div>
         <div class="personal-week-body">
           <div class="personal-week-hours" aria-hidden="true">
-            {% for hour in range(25) %}<span style="top: {{ hour * 48 }}px;">{{ '%02d:00'|format(hour) }}</span>{% endfor %}
+            {% for hour in range(25) %}<span style="top: {{ hour * 100 / 24 }}%;">{{ '%02d:00'|format(hour) }}</span>{% endfor %}
           </div>
           <div class="personal-week-columns">
             {% for day in calendar_days %}
@@ -68,11 +68,13 @@
               {% for item in day.week_segments %}
               <a class="personal-week-event type-{{ item.type }}{% if item.continues_before %} continues-before{% endif %}{% if item.continues_after %} continues-after{% endif %}"
                  href="/my-schedule/events/{{ item.id }}"
-                 style="top: {{ item.start_minutes / 60 * 48 }}px; height: {{ item.duration_minutes / 60 * 48 }}px; left: calc({{ (item.column - 1) * 100 / item.columns }}% + 2px); width: calc({{ 100 / item.columns }}% - 4px);"
-                 title="{{ item.title }} · {{ item.start_time.strftime('%m/%d %H:%M') }}–{{ item.end_time.strftime('%m/%d %H:%M') }}">
-                <strong>{{ item.title }}</strong>
-                {% if item.continues_before %}<span class="personal-week-tail">↖ {{ '上周延续' if day.date.weekday() == 0 else '前一天延续' }}</span>{% else %}<span>{{ item.start_time.strftime('%H:%M') }}</span>{% endif %}
-                {% if item.continues_after %}<span class="personal-week-tail">{{ '延续到下周' if day.date.weekday() == 6 else '延续到次日' }} ↘</span>{% endif %}
+                 style="top: {{ item.start_minutes * 100 / 1440 }}%; height: {{ item.duration_minutes * 100 / 1440 }}%; left: calc({{ (item.column - 1) * 100 / item.columns }}% + 2px); width: calc({{ 100 / item.columns }}% - 4px);"
+                 title="{{ item.title }} · {{ item.start_time.strftime('%m/%d %H:%M') }}–{{ item.end_time.strftime('%m/%d %H:%M') }}{% if item.continues_before %} · {{ '上周延续' if day.date.weekday() == 0 else '前一天延续' }}{% endif %}{% if item.continues_after %} · {{ '延续到下周' if day.date.weekday() == 6 else '延续到次日' }}{% endif %}">
+                <strong>{{ item.title }}{% if item.duration_minutes < 90 %}{% if item.continues_before %} ↖{% elif item.continues_after %} ↘{% endif %}{% endif %}</strong>
+                {% if item.duration_minutes >= 90 %}
+                  {% if item.continues_before %}<span class="personal-week-tail">↖ {{ '上周延续' if day.date.weekday() == 0 else '前一天延续' }}</span>{% else %}<span>{{ item.start_time.strftime('%H:%M') }}</span>{% endif %}
+                  {% if item.continues_after %}<span class="personal-week-tail">{{ '延续到下周' if day.date.weekday() == 6 else '延续到次日' }} ↘</span>{% endif %}
+                {% endif %}
               </a>
               {% endfor %}
             </div>

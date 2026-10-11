@@ -38,6 +38,7 @@ def test_personal_manual_create_edit_and_delete_pages():
             assert non_interview.headers["location"] == f"/my-schedule/events/{event.id}"
             page = client.get("/my-schedule?date_value=2026-10-02")
             assert "算法笔试" in page.text
+            assert 'class="personal-event-list has-timeline-events"' in page.text
             assert "候选人姓名" not in page.text
             detail = client.get(f"/my-schedule/events/{event.id}")
             assert detail.status_code == 200
@@ -94,6 +95,7 @@ def test_personal_calendar_has_live_time_line_and_hides_it_on_other_dates():
     assert 'data-time-zone="Asia/Shanghai"' in current.text
     assert 'data-now-line' in current.text
     assert 'data-now-line hidden' in previous.text
+    assert 'class="personal-event-list"' in previous.text
 
 
 def test_personal_calendar_week_and_month_views_keep_period_navigation():
@@ -148,6 +150,13 @@ def test_week_timeline_splits_overnight_events_at_day_and_week_boundaries():
     assert monday_late_segment["continues_after"] is True
     assert (tuesday_segment["start_minutes"], tuesday_segment["duration_minutes"]) == (0, 60)
     assert tuesday_segment["continues_before"] is True
+    day_start = _dashboard_context(service, date(2026, 10, 12), "day")
+    day_next = _dashboard_context(service, date(2026, 10, 13), "day")
+    assert day_start["end_hour"] == 24
+    assert any(item["title"] == "跨天任务" and item["duration_minutes"] == 60
+               for item in day_start["entries"])
+    assert any(item["title"] == "跨天任务" and item["start_minutes"] == 0
+               for item in day_next["entries"])
     app.dependency_overrides[get_personal_schedule_service] = lambda: service
     try:
         with TestClient(app) as client:

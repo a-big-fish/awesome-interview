@@ -79,10 +79,10 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
     now = datetime.now(DISPLAY_ZONE)
     all_events = service.list_events()
     event_views = [_event_view(item, now) for item in all_events]
-    views = [item for item in event_views if item["start_time"].date() == selected_date]
-    _assign_entry_columns(views)
-    earliest = min((item["start_time"].hour for item in views), default=6)
-    latest = max((item["end_time"].hour + (item["end_time"].minute > 0) for item in views), default=23)
+    views = _week_day_segments(event_views, selected_date)
+    earliest = min((item["start_minutes"] // 60 for item in views), default=6)
+    latest = max(((item["start_minutes"] + item["duration_minutes"] + 59) // 60
+                  for item in views), default=23)
     start_hour = min(6, earliest)
     end_hour = max(23, latest)
     now_minutes = now.hour * 60 + now.minute

@@ -766,6 +766,7 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
 .personal-layout > * { min-width: 0; }
 .personal-calendar, .personal-upcoming, .personal-form-page { padding: 24px; }
 .personal-event-list { display: grid; gap: 10px; margin-top: 18px; }
+.personal-dashboard-page .personal-event-list.has-timeline-events { display: none; }
 .personal-event-card, .personal-upcoming-item { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; }
 .personal-event-card strong { flex: 1; }
 .personal-event-card:hover, .personal-upcoming-item:hover { border-color: var(--primary); }
@@ -806,24 +807,24 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
 .personal-period-event.type-personal { background: #fff0f4; }
 .personal-period-event:hover { text-decoration: underline; }
 .personal-period-more { color: var(--muted); font-size: 11px; }
-.personal-week-timeline { flex: 1; min-height: 0; max-height: min(72vh, 830px); margin-top: 18px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-.personal-week-inner { min-width: 840px; }
+.personal-week-timeline { flex: 1; height: min(70dvh, 650px); min-height: 0; margin-top: 18px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.personal-week-inner { display: flex; height: 100%; min-width: 0; flex-direction: column; }
 .personal-week-header { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); position: sticky; z-index: 5; top: 0; background: #f7f9fd; border-bottom: 1px solid var(--border); }
 .personal-week-header a, .personal-week-corner { display: grid; place-content: center; gap: 2px; min-height: 58px; border-right: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; text-decoration: none; }
 .personal-week-header a:last-child { border-right: 0; }
 .personal-week-header strong { color: var(--text); font-size: 13px; }
 .personal-week-header a.is-today strong { color: var(--primary); }
-.personal-week-body { display: grid; grid-template-columns: 58px minmax(0, 1fr); }
-.personal-week-hours { position: relative; height: 1152px; border-right: 1px solid var(--border); background: #fafbfe; }
+.personal-week-body { display: grid; flex: 1; min-height: 0; grid-template-columns: 58px minmax(0, 1fr); }
+.personal-week-hours { position: relative; height: 100%; border-right: 1px solid var(--border); background: #fafbfe; }
 .personal-week-hours span { position: absolute; right: 7px; transform: translateY(-50%); color: var(--muted); font-size: 10px; white-space: nowrap; }
 .personal-week-hours span:first-child { transform: translateY(2px); }
 .personal-week-hours span:last-child { transform: translateY(-100%); }
-.personal-week-columns { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); position: relative; height: 1152px; }
-.personal-week-day { position: relative; min-width: 0; border-right: 1px solid var(--border); background: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #e7edf7 47px, #e7edf7 48px); }
+.personal-week-columns { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); position: relative; height: 100%; }
+.personal-week-day { position: relative; min-width: 0; border-right: 1px solid var(--border); background-image: linear-gradient(to bottom, transparent calc(100% - 1px), #e7edf7 calc(100% - 1px)); background-size: 100% 4.166667%; }
 .personal-week-day:last-of-type { border-right: 0; }
-.personal-week-event { display: flex; flex-direction: column; position: absolute; z-index: 3; gap: 2px; box-sizing: border-box; overflow: hidden; padding: 4px 5px; border-left-width: 3px; border-radius: 7px; background: #edf3ff; color: var(--text); font-size: 11px; line-height: 1.25; text-decoration: none; }
+.personal-week-event { display: flex; flex-direction: column; position: absolute; z-index: 3; gap: 1px; box-sizing: border-box; overflow: hidden; padding: 2px 4px; border-left-width: 3px; border-radius: 5px; background: #edf3ff; color: var(--text); font-size: 10px; line-height: 1.1; text-decoration: none; }
 .personal-week-event strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.personal-week-event span { color: var(--muted); font-size: 10px; }
+.personal-week-event span { color: var(--muted); font-size: 9px; }
 .personal-week-event .personal-week-tail { color: #536fb8; font-weight: 600; }
 .personal-week-event.continues-before { border-top-left-radius: 2px; border-top-right-radius: 2px; }
 .personal-week-event.continues-after { border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; }
@@ -883,7 +884,8 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
   .personal-view-switch a { flex: 1; min-width: 0; }
   .personal-view-switch .personal-today-link { flex: 0 0 82px; min-width: 0; margin-left: 0; padding: 7px 4px; }
   .personal-period-calendar { margin-top: 14px; }
-  .personal-week-timeline { margin-top: 14px; max-height: min(70vh, 680px); }
+  .personal-week-timeline { height: min(65dvh, 600px); margin-top: 14px; overflow-x: auto; }
+  .personal-week-inner { min-width: 840px; }
   .personal-period-weekdays span { padding: 7px 0; font-size: 11px; }
   .personal-period-day { padding: 3px; }
   .personal-period-grid { grid-auto-rows: minmax(120px, auto); }
@@ -974,7 +976,8 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
   .personal-dashboard-page .personal-calendar,
   .personal-dashboard-page .personal-upcoming { padding: 16px; }
   .personal-dashboard-page .personal-time-table { display: none; }
-  .personal-dashboard-page .personal-event-list { margin-top: 14px; }
+  .personal-dashboard-page .personal-event-list,
+  .personal-dashboard-page .personal-event-list.has-timeline-events { display: grid; margin-top: 14px; }
   .personal-dashboard-page .personal-event-card { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; }
   .personal-dashboard-page .personal-event-card strong,
   .personal-dashboard-page .personal-event-card .muted-text { grid-column: 1 / -1; }
@@ -2313,6 +2316,10 @@ body.page-wide.personal-scroll-page .page main {
     height: 100%;
     max-height: none;
     overflow-y: auto;
+  }
+
+  .personal-dashboard-page .personal-week-timeline {
+    height: auto;
   }
 
   .personal-dashboard-page .personal-event-list {

@@ -15,3 +15,9 @@ def public_home(request: Request):
     if request.app.state.auth_service.authenticate(request.cookies.get(SESSION_COOKIE)):
         return RedirectResponse("/my-schedule/experiences/plaza", status_code=303)
     return templates.TemplateResponse(request, "public_portal.html", {})
+
+
+@router.get("/copyright", response_class=HTMLResponse)
+def copyright_page(request: Request):
+    """Show attribution and takedown information for collected experiences."""
+    return templates.TemplateResponse(request, "copyright.html", {})

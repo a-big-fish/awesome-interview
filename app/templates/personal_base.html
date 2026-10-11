@@ -12,6 +12,7 @@
 </a>
 {% endblock %}
 {% block scripts %}<script src="{{ asset_url('js/personal_navigation.js') }}" defer></script><script src="{{ asset_url('js/personal_page_cache.js') }}" defer></script><script src="{{ asset_url('js/interview_experience.js') }}" defer></script>{% endblock %}
+{% block footer %}<footer class="personal-site-footer"><span>© Awesome Interview</span><a href="/copyright">版权与侵删说明</a></footer>{% endblock %}
 {% block navigation %}
 <button class="mobile-nav-toggle" type="button" aria-label="展开导航" aria-controls="personal-page-nav" aria-expanded="true" data-mobile-nav-toggle><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button>
 <nav class="page-nav" id="personal-page-nav">

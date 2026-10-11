@@ -506,6 +506,21 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
   text-align: center;
 }
 
+.personal-site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 14px 20px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.copyright-page { max-width: 720px; margin: 28px auto; }
+.copyright-page p { line-height: 1.8; }
+
 @media (max-width: 820px) {
   .page {
     padding: 20px 16px 36px;

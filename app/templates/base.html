@@ -23,6 +23,7 @@
       </nav>{% endblock %}
     </header>
     <main class="{% block main_class %}{% endblock %}">{% block content %}{% endblock %}</main>
+    {% block footer %}{% endblock %}
   </div>
   {% block scripts %}{% endblock %}
   <script src="{{ asset_url('js/app.js') }}"></script>

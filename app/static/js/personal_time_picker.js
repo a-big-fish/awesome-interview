@@ -1,14 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
   const eventType = document.querySelector('[data-event-type]');
   const positionField = document.querySelector('[data-position-field]');
-  if (eventType && positionField) {
-    const updatePositionField = () => {
+  const invitationForm = document.querySelector('[data-invitation-form]');
+  const invitationDivider = document.querySelector('[data-invitation-divider]');
+  if (eventType) {
+    const updateEventFields = () => {
       const isInterview = eventType.value === 'interview';
-      positionField.hidden = !isInterview;
-      positionField.querySelector('input').disabled = !isInterview;
+      if (positionField) {
+        positionField.hidden = !isInterview;
+        positionField.querySelector('input').disabled = !isInterview;
+      }
+      if (invitationForm) invitationForm.hidden = !isInterview;
+      if (invitationDivider) invitationDivider.hidden = !isInterview;
     };
-    eventType.addEventListener('change', updatePositionField);
-    updatePositionField();
+    eventType.addEventListener('change', updateEventFields);
+    updateEventFields();
   }
 
   const dialog = document.querySelector('[data-time-dialog]');
@@ -33,6 +39,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const formatValue = value => validValue(value)
     ? `${value.slice(0, 4)}/${value.slice(5, 7)}/${value.slice(8, 10)} ${value.slice(11)}`
     : value || '请选择日期和时间';
+  const startField = fields.find(field => field.querySelector('[name="start_at"]'));
+  const endField = fields.find(field => field.querySelector('[name="end_at"]'));
+
+  function updateEndFromStart(startValue) {
+    if (!validValue(startValue) || !endField) return;
+    const year = Number(startValue.slice(0, 4));
+    const month = Number(startValue.slice(5, 7)) - 1;
+    const day = Number(startValue.slice(8, 10));
+    const hour = Number(startValue.slice(11, 13));
+    const minute = Number(startValue.slice(14, 16));
+    const end = new Date(Date.UTC(year, month, day, hour + 1, minute));
+    const endValue = `${end.getUTCFullYear()}-${pad(end.getUTCMonth() + 1)}-${pad(end.getUTCDate())}T${pad(end.getUTCHours())}:${pad(end.getUTCMinutes())}`;
+    endField.querySelector('[data-time-value]').value = endValue;
+    endField.querySelector('[data-time-trigger]').textContent = formatValue(endValue);
+  }
 
   fields.forEach(field => {
     const value = field.querySelector('[data-time-value]');
@@ -213,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = activeField.querySelector('[data-time-value]');
         value.value = `${selectedDate}T${selectedHour}:${number}`;
         activeField.querySelector('[data-time-trigger]').textContent = formatValue(value.value);
+        if (activeField === startField) updateEndFromStart(value.value);
         dialog.close();
         activeField.querySelector('[data-time-trigger]').focus();
       });

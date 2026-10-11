@@ -69,6 +69,17 @@ def test_new_personal_event_defaults_to_current_shanghai_time():
     assert end_at - start_at == timedelta(hours=1)
 
 
+def test_non_interview_event_form_hides_invitation_parser_on_validation_error():
+    with TestClient(app) as client:
+        page = client.post("/my-schedule/events", data={
+            "title": "课程", "event_type": "course", "start_at": "invalid",
+            "end_at": "invalid", "timezone": "Asia/Shanghai",
+        })
+    assert page.status_code == 422
+    assert 'data-invitation-form hidden' in page.text
+    assert 'name="event_type" form="personal-event-form"' in page.text
+
+
 def test_personal_calendar_has_live_time_line_and_hides_it_on_other_dates():
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     with TestClient(app) as client:
@@ -80,6 +91,34 @@ def test_personal_calendar_has_live_time_line_and_hides_it_on_other_dates():
     assert 'data-time-zone="Asia/Shanghai"' in current.text
     assert 'data-now-line' in current.text
     assert 'data-now-line hidden' in previous.text
+
+
+def test_personal_calendar_week_and_month_views_keep_period_navigation():
+    profile = MemoryMyResumeMapper()
+    service = PersonalScheduleService(MemoryPersonalEventMapper(), profile)
+    service.create_manual(
+        title="周内面试", event_type="interview",
+        start_at=datetime(2026, 10, 9, 9, tzinfo=ZoneInfo("Asia/Shanghai")),
+        end_at=datetime(2026, 10, 9, 10, tzinfo=ZoneInfo("Asia/Shanghai")),
+    )
+    app.dependency_overrides[get_personal_schedule_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            week = client.get("/my-schedule?view=week&date_value=2026-10-10")
+            month = client.get("/my-schedule?view=month&date_value=2026-10-10")
+        assert week.status_code == month.status_code == 200
+        assert 'personal-period-week' in week.text
+        assert '2026-10-05 — 10-11 · 1 项安排' in week.text
+        assert 'view=week&amp;date_value=2026-10-03' in week.text
+        assert 'class="personal-today-link" href="/my-schedule?view=week&amp;date_value=' in week.text
+        assert '周内面试' in week.text
+        assert 'personal-period-month' in month.text
+        assert '2026 年 10 月 · 1 项安排' in month.text
+        assert 'view=month&amp;date_value=2026-11-01' in month.text
+        assert 'class="personal-today-link" href="/my-schedule?view=month&amp;date_value=' in month.text
+        assert '查看 2026-11-01 的日程' in month.text
+    finally:
+        app.dependency_overrides.pop(get_personal_schedule_service, None)
 
 
 def test_personal_invitation_preview_and_interview_workspace():

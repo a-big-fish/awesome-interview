@@ -6,13 +6,20 @@
   <div><h1 class="section-title">我的日程</h1><p class="section-description">北京时间 · 面试、笔试、课程与其他安排集中查看</p></div>
   <a class="btn" href="/my-schedule/new">＋ 添加日程</a>
 </div>
+<nav class="personal-view-switch" aria-label="日程视图">
+  <a href="/my-schedule?view=day&amp;date_value={{ selected_date.isoformat() }}" {% if selected_view == 'day' %}aria-current="page"{% endif %}>日视图</a>
+  <a href="/my-schedule?view=week&amp;date_value={{ selected_date.isoformat() }}" {% if selected_view == 'week' %}aria-current="page"{% endif %}>周视图</a>
+  <a href="/my-schedule?view=month&amp;date_value={{ selected_date.isoformat() }}" {% if selected_view == 'month' %}aria-current="page"{% endif %}>月视图</a>
+  <a class="personal-today-link" href="/my-schedule?view={{ selected_view }}&amp;date_value={{ today_date.isoformat() }}">回到今天</a>
+</nav>
 <div class="personal-layout">
   <section class="card personal-calendar">
     <div class="date-nav-row">
-      <a class="date-nav" href="/my-schedule?date_value={{ prev_date }}" aria-label="前一天">‹</a>
-      <h2>{{ selected_date }} {{ selected_weekday }} · {{ entries|length }} 项安排</h2>
-      <a class="date-nav" href="/my-schedule?date_value={{ next_date }}" aria-label="后一天">›</a>
+      <a class="date-nav" href="/my-schedule?view={{ selected_view }}&amp;date_value={{ prev_date }}" aria-label="上一个{{ '月' if selected_view == 'month' else '周' if selected_view == 'week' else '日' }}">‹</a>
+      <h2>{{ period_title }}</h2>
+      <a class="date-nav" href="/my-schedule?view={{ selected_view }}&amp;date_value={{ next_date }}" aria-label="下一个{{ '月' if selected_view == 'month' else '周' if selected_view == 'week' else '日' }}">›</a>
     </div>
+    {% if selected_view == 'day' %}
     <div class="time-table personal-time-table">
       <div class="time-grid-wrap" style="--hour-height: 88px; --start-hour: {{ start_hour }};">
         <div class="time-labels">
@@ -42,6 +49,26 @@
       <div class="empty-state"><div class="empty-title">这一天还没有安排</div><p>可手动添加，或粘贴会议邀请解析。</p></div>
     {% endfor %}
     </div>
+    {% else %}
+    <div class="personal-period-calendar personal-period-{{ selected_view }}">
+      <div class="personal-period-weekdays" aria-hidden="true">
+        {% for weekday in ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] %}<span>{{ weekday }}</span>{% endfor %}
+      </div>
+      <div class="personal-period-grid">
+        {% for day in calendar_days %}
+        <div class="personal-period-day{% if not day.in_month and selected_view == 'month' %} outside-month{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}">
+          <a class="personal-period-date" href="/my-schedule?view=day&amp;date_value={{ day.date.isoformat() }}" aria-label="查看 {{ day.date.isoformat() }} 的日程">{{ day.date.strftime('%m/%d') if selected_view == 'week' or not day.in_month else day.date.day }}</a>
+          <div class="personal-period-events">
+            {% for item in day.entries[:(2 if selected_view == 'week' else 3)] %}
+            <a class="personal-period-event type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}" title="{{ item.start_time.strftime('%H:%M') }} {{ item.title }}">{{ item.title }}</a>
+            {% endfor %}
+            {% if day.entries|length > (2 if selected_view == 'week' else 3) %}<span class="personal-period-more">另有 {{ day.entries|length - (2 if selected_view == 'week' else 3) }} 项</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </section>
   <aside class="card personal-upcoming">
     <h2>接下来的安排</h2>

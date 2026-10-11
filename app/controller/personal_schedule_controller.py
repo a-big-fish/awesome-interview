@@ -49,25 +49,59 @@ def _event_view(event: PersonalEvent, now: datetime) -> dict[str, Any]:
     }
 
 
-def _dashboard_context(service: PersonalScheduleService, selected_date: date) -> dict[str, Any]:
+def _dashboard_context(service: PersonalScheduleService, selected_date: date,
+                       selected_view: str = "day") -> dict[str, Any]:
     now = datetime.now(DISPLAY_ZONE)
     all_events = service.list_events()
-    views = [
-        _event_view(item, now) for item in all_events
-        if item.start_at.astimezone(DISPLAY_ZONE).date() == selected_date
-    ]
+    event_views = [_event_view(item, now) for item in all_events]
+    views = [item for item in event_views if item["start_time"].date() == selected_date]
     _assign_entry_columns(views)
     earliest = min((item["start_time"].hour for item in views), default=6)
     latest = max((item["end_time"].hour + (item["end_time"].minute > 0) for item in views), default=23)
     start_hour = min(6, earliest)
     end_hour = max(23, latest)
     now_minutes = now.hour * 60 + now.minute
-    upcoming = [_event_view(item, now) for item in all_events if item.end_at > now]
+    upcoming = [item for item in event_views if item["end_time"] > now]
+    selected_view = selected_view if selected_view in {"day", "week", "month"} else "day"
+    calendar_days: list[dict[str, Any]] = []
+    if selected_view == "week":
+        period_start = selected_date - timedelta(days=selected_date.weekday())
+        period_dates = [period_start + timedelta(days=offset) for offset in range(7)]
+        prev_date = selected_date - timedelta(days=7)
+        next_date = selected_date + timedelta(days=7)
+        period_title = f"{period_dates[0]:%Y-%m-%d} — {period_dates[-1]:%m-%d} · {sum(item['start_time'].date() in period_dates for item in event_views)} 项安排"
+    elif selected_view == "month":
+        first = selected_date.replace(day=1)
+        period_start = first - timedelta(days=first.weekday())
+        period_dates = [period_start + timedelta(days=offset) for offset in range(42)]
+        prev_date = (first - timedelta(days=1)).replace(day=1)
+        next_date = (first + timedelta(days=32)).replace(day=1)
+        period_title = f"{first.year} 年 {first.month} 月 · {sum(item['start_time'].year == first.year and item['start_time'].month == first.month for item in event_views)} 项安排"
+    else:
+        period_dates = []
+        prev_date = selected_date - timedelta(days=1)
+        next_date = selected_date + timedelta(days=1)
+        period_title = f"{selected_date} {WEEKDAY_NAMES[selected_date.weekday()]} · {len(views)} 项安排"
+    if period_dates:
+        events_by_day: dict[date, list[dict[str, Any]]] = {}
+        for item in event_views:
+            events_by_day.setdefault(item["start_time"].date(), []).append(item)
+        calendar_days = [{
+            "date": day,
+            "entries": events_by_day.get(day, []),
+            "in_month": day.month == selected_date.month,
+            "is_today": day == now.date(),
+            "is_selected": day == selected_date,
+        } for day in period_dates]
     return {
         "selected_date": selected_date,
+        "today_date": now.date(),
+        "selected_view": selected_view,
+        "period_title": period_title,
+        "calendar_days": calendar_days,
         "selected_weekday": WEEKDAY_NAMES[selected_date.weekday()],
-        "prev_date": (selected_date - timedelta(days=1)).isoformat(),
-        "next_date": (selected_date + timedelta(days=1)).isoformat(),
+        "prev_date": prev_date.isoformat(),
+        "next_date": next_date.isoformat(),
         "entries": views,
         "upcoming": upcoming[:10],
         "time_labels": [f"{hour:02d}:00" for hour in range(start_hour, end_hour + 1)],
@@ -100,13 +134,14 @@ def _new_page(request: Request, *, error: str | None = None, warnings: list[str]
 def personal_dashboard(
     request: Request,
     date_value: str | None = None,
+    view: str = "day",
     service: PersonalScheduleService = Depends(get_personal_schedule_service),
 ):
     try:
         selected = date.fromisoformat(date_value) if date_value else datetime.now(DISPLAY_ZONE).date()
     except ValueError:
         selected = datetime.now(DISPLAY_ZONE).date()
-    return templates.TemplateResponse(request, "personal_dashboard.html", _dashboard_context(service, selected))
+    return templates.TemplateResponse(request, "personal_dashboard.html", _dashboard_context(service, selected, view))
 
 
 @router.get("/new", response_class=HTMLResponse)

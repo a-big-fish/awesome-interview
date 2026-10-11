@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import re
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 
 from app.core.dependencies import get_my_resume_mapper, get_personal_schedule_service, get_resume_parser_service
+from app.controller.personal_schedule_controller import _dashboard_context
 from app.main import app
 from app.mapper.memory_my_resume_mapper import MemoryMyResumeMapper
 from app.mapper.memory_personal_event_mapper import MemoryPersonalEventMapper
@@ -31,6 +32,7 @@ def test_personal_manual_create_edit_and_delete_pages():
             assert created.status_code == 303
             event = service.list_events()[0]
             assert event.type == "exam"
+            assert created.headers["location"] == "/my-schedule?view=day&date_value=2026-10-02"
             non_interview = client.get(f"/my-schedule/interviews/{event.id}", follow_redirects=False)
             assert non_interview.status_code == 303
             assert non_interview.headers["location"] == f"/my-schedule/events/{event.id}"
@@ -45,6 +47,7 @@ def test_personal_manual_create_edit_and_delete_pages():
                 "timezone": "Asia/Shanghai",
             }, follow_redirects=False)
             assert edited.status_code == 303
+            assert edited.headers["location"] == "/my-schedule?view=day&date_value=2026-10-02"
             assert service.get_event(event.id).title == "算法笔试第二轮"
             deleted = client.post(f"/my-schedule/events/{event.id}/delete", follow_redirects=False)
             assert deleted.status_code == 303
@@ -107,7 +110,8 @@ def test_personal_calendar_week_and_month_views_keep_period_navigation():
             week = client.get("/my-schedule?view=week&date_value=2026-10-10")
             month = client.get("/my-schedule?view=month&date_value=2026-10-10")
         assert week.status_code == month.status_code == 200
-        assert 'personal-period-week' in week.text
+        assert 'personal-week-timeline' in week.text
+        assert '24:00' in week.text
         assert '2026-10-05 — 10-11 · 1 项安排' in week.text
         assert 'view=week&amp;date_value=2026-10-03' in week.text
         assert 'class="personal-today-link" href="/my-schedule?view=week&amp;date_value=' in week.text
@@ -117,6 +121,46 @@ def test_personal_calendar_week_and_month_views_keep_period_navigation():
         assert 'view=month&amp;date_value=2026-11-01' in month.text
         assert 'class="personal-today-link" href="/my-schedule?view=month&amp;date_value=' in month.text
         assert '查看 2026-11-01 的日程' in month.text
+    finally:
+        app.dependency_overrides.pop(get_personal_schedule_service, None)
+
+
+def test_week_timeline_splits_overnight_events_at_day_and_week_boundaries():
+    zone = ZoneInfo("Asia/Shanghai")
+    service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())
+    service.create_manual(
+        title="跨周任务", event_type="personal",
+        start_at=datetime(2026, 10, 11, 23, tzinfo=zone),
+        end_at=datetime(2026, 10, 12, 1, tzinfo=zone),
+    )
+    service.create_manual(
+        title="跨天任务", event_type="personal",
+        start_at=datetime(2026, 10, 12, 23, tzinfo=zone),
+        end_at=datetime(2026, 10, 13, 1, tzinfo=zone),
+    )
+    monday_context = _dashboard_context(service, date(2026, 10, 12), "week")
+    monday_segment = monday_context["calendar_days"][0]["week_segments"][0]
+    monday_late_segment = monday_context["calendar_days"][0]["week_segments"][1]
+    tuesday_segment = monday_context["calendar_days"][1]["week_segments"][0]
+    assert (monday_segment["start_minutes"], monday_segment["duration_minutes"]) == (0, 60)
+    assert monday_segment["continues_before"] is True
+    assert (monday_late_segment["start_minutes"], monday_late_segment["duration_minutes"]) == (1380, 60)
+    assert monday_late_segment["continues_after"] is True
+    assert (tuesday_segment["start_minutes"], tuesday_segment["duration_minutes"]) == (0, 60)
+    assert tuesday_segment["continues_before"] is True
+    app.dependency_overrides[get_personal_schedule_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            sunday = client.get("/my-schedule?view=week&date_value=2026-10-11")
+            monday = client.get("/my-schedule?view=week&date_value=2026-10-12")
+        assert sunday.status_code == monday.status_code == 200
+        assert '2026-10-05 — 10-11 · 1 项安排' in sunday.text
+        assert '延续到下周' in sunday.text
+        assert '上周延续' in monday.text
+        assert '2026-10-12 — 10-18 · 2 项安排' in monday.text
+        assert '延续到次日' in monday.text
+        assert '前一天延续' in monday.text
+        assert monday.text.count('class="personal-week-bridge"') == 1
     finally:
         app.dependency_overrides.pop(get_personal_schedule_service, None)
 
@@ -139,6 +183,7 @@ def test_personal_invitation_preview_and_interview_workspace():
                 "end_at": "2026-10-02T14:00", "timezone": "Asia/Shanghai",
             }, follow_redirects=False)
             assert saved.status_code == 303
+            assert saved.headers["location"] == "/my-schedule?view=day&date_value=2026-10-02"
             workspace = client.get("/my-schedule/interviews?date_value=2026-10-02")
             assert workspace.status_code == 200
             assert "后端面试" in workspace.text

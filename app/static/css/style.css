@@ -806,6 +806,34 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
 .personal-period-event.type-personal { background: #fff0f4; }
 .personal-period-event:hover { text-decoration: underline; }
 .personal-period-more { color: var(--muted); font-size: 11px; }
+.personal-week-timeline { flex: 1; min-height: 0; max-height: min(72vh, 830px); margin-top: 18px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.personal-week-inner { min-width: 840px; }
+.personal-week-header { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); position: sticky; z-index: 5; top: 0; background: #f7f9fd; border-bottom: 1px solid var(--border); }
+.personal-week-header a, .personal-week-corner { display: grid; place-content: center; gap: 2px; min-height: 58px; border-right: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; text-decoration: none; }
+.personal-week-header a:last-child { border-right: 0; }
+.personal-week-header strong { color: var(--text); font-size: 13px; }
+.personal-week-header a.is-today strong { color: var(--primary); }
+.personal-week-body { display: grid; grid-template-columns: 58px minmax(0, 1fr); }
+.personal-week-hours { position: relative; height: 1152px; border-right: 1px solid var(--border); background: #fafbfe; }
+.personal-week-hours span { position: absolute; right: 7px; transform: translateY(-50%); color: var(--muted); font-size: 10px; white-space: nowrap; }
+.personal-week-hours span:first-child { transform: translateY(2px); }
+.personal-week-hours span:last-child { transform: translateY(-100%); }
+.personal-week-columns { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); position: relative; height: 1152px; }
+.personal-week-day { position: relative; min-width: 0; border-right: 1px solid var(--border); background: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #e7edf7 47px, #e7edf7 48px); }
+.personal-week-day:last-of-type { border-right: 0; }
+.personal-week-event { display: flex; flex-direction: column; position: absolute; z-index: 3; gap: 2px; box-sizing: border-box; overflow: hidden; padding: 4px 5px; border-left-width: 3px; border-radius: 7px; background: #edf3ff; color: var(--text); font-size: 11px; line-height: 1.25; text-decoration: none; }
+.personal-week-event strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-week-event span { color: var(--muted); font-size: 10px; }
+.personal-week-event .personal-week-tail { color: #536fb8; font-weight: 600; }
+.personal-week-event.continues-before { border-top-left-radius: 2px; border-top-right-radius: 2px; }
+.personal-week-event.continues-after { border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; }
+.personal-week-event.type-exam { background: #f7efff; }
+.personal-week-event.type-course { background: #eafaf5; }
+.personal-week-event.type-recruiting { background: #fff5e9; }
+.personal-week-event.type-meeting { background: #edf6fb; }
+.personal-week-event.type-personal { background: #fff0f4; }
+.personal-week-event:hover { outline: 2px solid #9ab1ff; }
+.personal-week-bridge { position: absolute; z-index: 2; top: 4px; bottom: 4px; width: 12px; transform: translateX(-50%); border-left: 2px solid #c0cff6; border-right: 2px solid #c0cff6; border-radius: 45% / 3%; opacity: .8; pointer-events: none; }
 .personal-upcoming { display: flex; flex-direction: column; gap: 10px; }
 .personal-upcoming-item { display: grid; gap: 4px; }
 .personal-upcoming-item span { font-size: 12px; color: var(--muted); }
@@ -855,6 +883,7 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
   .personal-view-switch a { flex: 1; min-width: 0; }
   .personal-view-switch .personal-today-link { flex: 0 0 82px; min-width: 0; margin-left: 0; padding: 7px 4px; }
   .personal-period-calendar { margin-top: 14px; }
+  .personal-week-timeline { margin-top: 14px; max-height: min(70vh, 680px); }
   .personal-period-weekdays span { padding: 7px 0; font-size: 11px; }
   .personal-period-day { padding: 3px; }
   .personal-period-grid { grid-auto-rows: minmax(120px, auto); }

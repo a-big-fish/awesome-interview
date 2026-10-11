@@ -49,6 +49,39 @@
       <div class="empty-state"><div class="empty-title">这一天还没有安排</div><p>可手动添加，或粘贴会议邀请解析。</p></div>
     {% endfor %}
     </div>
+    {% elif selected_view == 'week' %}
+    <div class="personal-week-timeline" aria-label="周日程，按 24 小时显示">
+      <div class="personal-week-inner">
+        <div class="personal-week-header">
+          <span class="personal-week-corner">时间</span>
+          {% for day in calendar_days %}
+          <a href="/my-schedule?view=day&amp;date_value={{ day.date.isoformat() }}" {% if day.is_today %}class="is-today"{% endif %}>{{ ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][loop.index0] }}<strong>{{ day.date.strftime('%m/%d') }}</strong></a>
+          {% endfor %}
+        </div>
+        <div class="personal-week-body">
+          <div class="personal-week-hours" aria-hidden="true">
+            {% for hour in range(25) %}<span style="top: {{ hour * 48 }}px;">{{ '%02d:00'|format(hour) }}</span>{% endfor %}
+          </div>
+          <div class="personal-week-columns">
+            {% for day in calendar_days %}
+            <div class="personal-week-day" data-calendar-date="{{ day.date.isoformat() }}">
+              {% for item in day.week_segments %}
+              <a class="personal-week-event type-{{ item.type }}{% if item.continues_before %} continues-before{% endif %}{% if item.continues_after %} continues-after{% endif %}"
+                 href="/my-schedule/events/{{ item.id }}"
+                 style="top: {{ item.start_minutes / 60 * 48 }}px; height: {{ item.duration_minutes / 60 * 48 }}px; left: calc({{ (item.column - 1) * 100 / item.columns }}% + 2px); width: calc({{ 100 / item.columns }}% - 4px);"
+                 title="{{ item.title }} · {{ item.start_time.strftime('%m/%d %H:%M') }}–{{ item.end_time.strftime('%m/%d %H:%M') }}">
+                <strong>{{ item.title }}</strong>
+                {% if item.continues_before %}<span class="personal-week-tail">↖ {{ '上周延续' if day.date.weekday() == 0 else '前一天延续' }}</span>{% else %}<span>{{ item.start_time.strftime('%H:%M') }}</span>{% endif %}
+                {% if item.continues_after %}<span class="personal-week-tail">{{ '延续到下周' if day.date.weekday() == 6 else '延续到次日' }} ↘</span>{% endif %}
+              </a>
+              {% endfor %}
+            </div>
+            {% endfor %}
+            {% for boundary in week_bridges %}<span class="personal-week-bridge" style="left: {{ boundary * 100 / 7 }}%;" aria-hidden="true"></span>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
     {% else %}
     <div class="personal-period-calendar personal-period-{{ selected_view }}">
       <div class="personal-period-weekdays" aria-hidden="true">
@@ -59,10 +92,10 @@
         <div class="personal-period-day{% if not day.in_month and selected_view == 'month' %} outside-month{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}">
           <a class="personal-period-date" href="/my-schedule?view=day&amp;date_value={{ day.date.isoformat() }}" aria-label="查看 {{ day.date.isoformat() }} 的日程">{{ day.date.strftime('%m/%d') if selected_view == 'week' or not day.in_month else day.date.day }}</a>
           <div class="personal-period-events">
-            {% for item in day.entries[:(2 if selected_view == 'week' else 3)] %}
+            {% for item in day.entries[:3] %}
             <a class="personal-period-event type-{{ item.type }}" href="/my-schedule/events/{{ item.id }}" title="{{ item.start_time.strftime('%H:%M') }} {{ item.title }}">{{ item.title }}</a>
             {% endfor %}
-            {% if day.entries|length > (2 if selected_view == 'week' else 3) %}<span class="personal-period-more">另有 {{ day.entries|length - (2 if selected_view == 'week' else 3) }} 项</span>{% endif %}
+            {% if day.entries|length > 3 %}<span class="personal-period-more">另有 {{ day.entries|length - 3 }} 项</span>{% endif %}
           </div>
         </div>
         {% endfor %}

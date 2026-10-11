@@ -49,6 +49,31 @@ def _event_view(event: PersonalEvent, now: datetime) -> dict[str, Any]:
     }
 
 
+def _week_day_segments(events: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
+    """Clip events to a local calendar day for the 24-hour week timeline."""
+    day_start = datetime.combine(day, datetime.min.time(), DISPLAY_ZONE)
+    day_end = day_start + timedelta(days=1)
+    segments = []
+    for event in events:
+        start = event["start_time"]
+        end = event["end_time"]
+        if start >= day_end or end <= day_start:
+            continue
+        clipped_start = max(start, day_start)
+        clipped_end = min(end, day_end)
+        start_minutes = int((clipped_start - day_start).total_seconds() // 60)
+        end_minutes = int((clipped_end - day_start).total_seconds() // 60)
+        segments.append({
+            **event,
+            "start_minutes": start_minutes,
+            "duration_minutes": end_minutes - start_minutes,
+            "continues_before": start < day_start,
+            "continues_after": end > day_end,
+        })
+    _assign_entry_columns(segments)
+    return segments
+
+
 def _dashboard_context(service: PersonalScheduleService, selected_date: date,
                        selected_view: str = "day") -> dict[str, Any]:
     now = datetime.now(DISPLAY_ZONE)
@@ -64,12 +89,24 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
     upcoming = [item for item in event_views if item["end_time"] > now]
     selected_view = selected_view if selected_view in {"day", "week", "month"} else "day"
     calendar_days: list[dict[str, Any]] = []
+    week_bridges: list[int] = []
     if selected_view == "week":
         period_start = selected_date - timedelta(days=selected_date.weekday())
         period_dates = [period_start + timedelta(days=offset) for offset in range(7)]
         prev_date = selected_date - timedelta(days=7)
         next_date = selected_date + timedelta(days=7)
-        period_title = f"{period_dates[0]:%Y-%m-%d} — {period_dates[-1]:%m-%d} · {sum(item['start_time'].date() in period_dates for item in event_views)} 项安排"
+        period_end = datetime.combine(period_dates[-1] + timedelta(days=1),
+                                      datetime.min.time(), DISPLAY_ZONE)
+        period_begin = datetime.combine(period_start, datetime.min.time(), DISPLAY_ZONE)
+        week_count = sum(item["start_time"] < period_end and
+                         item["end_time"] > period_begin for item in event_views)
+        period_title = f"{period_dates[0]:%Y-%m-%d} — {period_dates[-1]:%m-%d} · {week_count} 项安排"
+        week_bridges = [
+            index + 1 for index, day in enumerate(period_dates[:-1])
+            if any(item["start_time"] < datetime.combine(day + timedelta(days=1),
+                                                          datetime.min.time(), DISPLAY_ZONE)
+                   < item["end_time"] for item in event_views)
+        ]
     elif selected_view == "month":
         first = selected_date.replace(day=1)
         period_start = first - timedelta(days=first.weekday())
@@ -89,6 +126,7 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
         calendar_days = [{
             "date": day,
             "entries": events_by_day.get(day, []),
+            "week_segments": _week_day_segments(event_views, day) if selected_view == "week" else [],
             "in_month": day.month == selected_date.month,
             "is_today": day == now.date(),
             "is_selected": day == selected_date,
@@ -99,6 +137,7 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
         "selected_view": selected_view,
         "period_title": period_title,
         "calendar_days": calendar_days,
+        "week_bridges": week_bridges,
         "selected_weekday": WEEKDAY_NAMES[selected_date.weekday()],
         "prev_date": prev_date.isoformat(),
         "next_date": next_date.isoformat(),
@@ -223,7 +262,8 @@ async def create_personal_event(
     except (KeyError, ValueError, ValidationError, MeetingParseError) as exc:
         return _new_page(request, error=str(exc), values=values,
                          preview=preview, status_code=422)
-    return RedirectResponse(url=f"/my-schedule/events/{event.id}", status_code=303)
+    event_day = event.start_at.astimezone(DISPLAY_ZONE).date().isoformat()
+    return RedirectResponse(url=f"/my-schedule?view=day&date_value={event_day}", status_code=303)
 
 
 @router.get("/events/{event_id}", response_class=HTMLResponse)
@@ -283,7 +323,8 @@ async def edit_personal_event(
             "event": current, "event_labels": EVENT_LABELS,
             "error": str(exc), "warnings": [], "values": values,
         }, status_code=422)
-    return RedirectResponse(url=f"/my-schedule/events/{event.id}", status_code=303)
+    event_day = event.start_at.astimezone(DISPLAY_ZONE).date().isoformat()
+    return RedirectResponse(url=f"/my-schedule?view=day&date_value={event_day}", status_code=303)
 
 
 @router.post("/events/{event_id}/delete")

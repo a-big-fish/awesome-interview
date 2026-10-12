@@ -1,5 +1,6 @@
 from threading import RLock
-from datetime import datetime
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from app.mapper.base_interview_experience_mapper import BaseInterviewExperienceMapper
 from app.model.interview_experience import InterviewExperience, InterviewQuestion
@@ -26,6 +27,16 @@ class MemoryInterviewExperienceMapper(BaseInterviewExperienceMapper):
             items = [item.model_copy(deep=True) for item in self._experiences.values()
                      if item.owner_id == owner_id]
         return sorted(items, key=lambda item: (item.updated_at, item.id), reverse=True)
+
+    def experience_counts_by_day(self) -> dict[date, tuple[int, int]]:
+        """Aggregate all saved experiences, including private and draft entries."""
+        counts: dict[date, tuple[int, int]] = {}
+        with self._lock:
+            for item in self._experiences.values():
+                day = item.created_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+                public, private = counts.get(day, (0, 0))
+                counts[day] = (public + int(item.is_public), private + int(not item.is_public))
+        return counts
 
     def list_public_experiences(self) -> list[InterviewExperience]:
         with self._lock:

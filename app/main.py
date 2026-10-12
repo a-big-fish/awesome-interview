@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.controller import (
+    admin_dashboard_controller,
     account_profile_controller,
     ai_interview_controller,
     auth_controller,
@@ -97,6 +98,8 @@ def create_app(settings: Settings | None = None, auth_service: AuthService | Non
         application.include_router(account_profile_controller.router,
                                    dependencies=[Depends(require_current_user)])
         application.include_router(mobile_api_controller.router,
+                                   dependencies=[Depends(require_current_user)])
+        application.include_router(admin_dashboard_controller.router,
                                    dependencies=[Depends(require_current_user)])
     else:
         application.include_router(page_controller.router)

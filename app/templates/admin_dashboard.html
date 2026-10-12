@@ -1,0 +1,52 @@
+{% extends 'personal_base.html' %}
+{% block title %}数据看板 - Awesome Interview{% endblock %}
+{% block styles %}{{ super() }}<link rel="stylesheet" href="{{ asset_url('css/admin-dashboard.css') }}">{% endblock %}
+{% block main_class %}admin-dashboard-main{% endblock %}
+{% block content %}
+<div class="admin-dashboard">
+  <header class="admin-intro">
+    <div>
+      <p class="admin-context">站点概况</p>
+      <h1>数据看板</h1>
+      <p>基于现有账号与面经记录汇总。图表按北京时间统计，不新增行为埋点。</p>
+    </div>
+    <span class="admin-asof">截至 {{ stats.today.strftime('%Y-%m-%d') }}</span>
+  </header>
+
+  <section class="admin-totals" aria-label="累计数据">
+    <div class="admin-total admin-total-users"><span>注册用户</span><strong>{{ stats.total_users }}</strong><small>所有已创建账号</small></div>
+    <div class="admin-total admin-total-notes"><span>全部面经</span><strong>{{ stats.total_notes }}</strong><small>包含公开与私密</small></div>
+    <div class="admin-total admin-total-public"><span>公开面经</span><strong>{{ stats.total_public }}</strong><small>按当前可见性统计</small></div>
+    <div class="admin-total admin-total-private"><span>私密面经</span><strong>{{ stats.total_private }}</strong><small>仅所有者可见</small></div>
+  </section>
+
+  <div class="admin-panels">
+    <section class="admin-panel admin-trend" aria-labelledby="admin-trend-title">
+      <div class="admin-panel-heading"><div><h2 id="admin-trend-title">最近 30 天</h2><p>每天新增用户和面经；面经按当前公开状态着色。</p></div><div class="admin-legend"><span class="legend-users">注册用户</span><span class="legend-public">公开面经</span><span class="legend-private">私密面经</span></div></div>
+      <div class="admin-chart-scroll" tabindex="0" aria-label="最近 30 天逐日统计图，可横向滚动">
+        <div class="admin-chart" role="img" aria-label="最近 30 天新增注册用户 {{ stats.recent_users }} 人，新增面经 {{ stats.recent_notes }} 篇">
+          {% for row in stats.series %}
+          <div class="admin-chart-day" title="{{ row.day }}：注册 {{ row.users }}，公开面经 {{ row.public }}，私密面经 {{ row.private }}">
+            <div class="admin-chart-bars">
+              <span class="admin-user-bar" style="height: {{ row.user_height }}%"></span>
+              <span class="admin-experience-bar"><i class="admin-public-bar" style="height: {{ row.public_height }}%"></i><i class="admin-private-bar" style="height: {{ row.private_height }}%"></i></span>
+            </div>
+            <span class="admin-chart-date">{% if loop.index == 1 or loop.index is divisibleby 5 or loop.last %}{{ row.label }}{% endif %}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <p class="admin-chart-summary">这 30 天新增注册 <strong>{{ stats.recent_users }}</strong> 人，新增面经 <strong>{{ stats.recent_notes }}</strong> 篇。</p>
+    </section>
+
+    <section class="admin-panel admin-visibility" aria-labelledby="admin-visibility-title">
+      <h2 id="admin-visibility-title">面经可见性</h2>
+      <p>统计所有已保存的面经，包含尚未进入广场的内容。</p>
+      <div class="admin-ring {% if not stats.total_notes %}is-empty{% endif %}" style="--public-percent: {{ stats.public_percent }}" role="img" aria-label="公开面经 {{ stats.total_public }} 篇，私密面经 {{ stats.total_private }} 篇">
+        <div><strong>{% if stats.total_notes %}{{ stats.public_percent }}%{% else %}0{% endif %}</strong><span>{% if stats.total_notes %}公开占比{% else %}暂无面经{% endif %}</span></div>
+      </div>
+      <div class="admin-visibility-rows"><div><span><i class="admin-dot public"></i>公开</span><strong>{{ stats.total_public }}</strong></div><div><span><i class="admin-dot private"></i>私密</span><strong>{{ stats.total_private }}</strong></div></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

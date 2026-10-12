@@ -1,7 +1,7 @@
 """Persistence boundary for a user's interview experiences and questions."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 
 from app.model.interview_experience import InterviewExperience, InterviewQuestion
 
@@ -15,6 +15,9 @@ class BaseInterviewExperienceMapper(ABC):
 
     @abstractmethod
     def list_experiences(self, owner_id: str) -> list[InterviewExperience]: ...
+
+    @abstractmethod
+    def experience_counts_by_day(self) -> dict[date, tuple[int, int]]: ...
 
     @abstractmethod
     def list_public_experiences(self) -> list[InterviewExperience]: ...

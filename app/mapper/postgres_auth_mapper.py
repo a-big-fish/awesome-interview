@@ -1,6 +1,6 @@
 """PostgreSQL accounts, one-time tokens, and revocable sessions."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Callable
 
 import psycopg
@@ -115,6 +115,15 @@ class PostgresAuthMapper(BaseAuthMapper):
         with self._connect() as connection:
             rows = connection.execute("SELECT * FROM personal_users WHERE id = ANY(%s)", (user_ids,)).fetchall()
         return {row["id"]: self._to_user(row) for row in rows}
+
+    def registration_counts_by_day(self) -> dict[date, int]:
+        """Return only daily signup totals in China standard time."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::date AS day, "
+                "COUNT(*) AS count FROM personal_users GROUP BY day"
+            ).fetchall()
+        return {row["day"]: row["count"] for row in rows}
 
     def update_display_name(self, user_id: str, display_name: str) -> None:
         with self._connect() as connection:

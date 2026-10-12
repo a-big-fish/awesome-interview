@@ -1,7 +1,7 @@
 """Persistence boundary for public accounts and sessions."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 
 from app.model.auth import AuthSession, AuthUser
 
@@ -18,6 +18,9 @@ class BaseAuthMapper(ABC):
 
     @abstractmethod
     def get_users(self, user_ids: list[str]) -> dict[str, AuthUser]: ...
+
+    @abstractmethod
+    def registration_counts_by_day(self) -> dict[date, int]: ...
 
     @abstractmethod
     def update_display_name(self, user_id: str, display_name: str) -> None: ...

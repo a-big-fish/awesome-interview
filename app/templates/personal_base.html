@@ -24,6 +24,7 @@
   <a class="nav-link" href="/my-schedule/interviews" {% if current_path.startswith('/my-schedule/interviews') %}aria-current="page"{% endif %}>我的面试</a>
   <a class="nav-link" href="/my-schedule/experiences" {% if current_path.startswith('/my-schedule/experiences') and not current_path.startswith('/my-schedule/experiences/plaza') %}aria-current="page"{% endif %}>我的面经</a>
   {% if request.app.state.settings.app_mode == 'public_personal' %}<a class="nav-link" href="/my-schedule/profile" {% if current_path == '/my-schedule/profile' %}aria-current="page"{% endif %}>个人设置</a>{% endif %}
+  {% if request.app.state.settings.app_mode == 'public_personal' and request.state.user.is_admin %}<a class="nav-link" href="/my-schedule/admin" {% if current_path == '/my-schedule/admin' %}aria-current="page"{% endif %}>数据看板</a>{% endif %}
   {% if request.app.state.settings.app_mode == 'public_personal' %}<form class="nav-logout-form" action="/auth/logout" method="post"><input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}"><button class="nav-link" type="submit">退出登录</button></form>{% endif %}
 </nav>
 {% endblock %}

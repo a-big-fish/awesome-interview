@@ -1,8 +1,9 @@
 """In-memory account store for isolated tests and local experiments."""
 
 from dataclasses import replace
-from datetime import datetime
+from datetime import date, datetime
 from threading import RLock
+from zoneinfo import ZoneInfo
 
 from app.mapper.base_auth_mapper import BaseAuthMapper
 from app.model.auth import AuthSession, AuthUser
@@ -40,6 +41,15 @@ class MemoryAuthMapper(BaseAuthMapper):
     def get_users(self, user_ids: list[str]) -> dict[str, AuthUser]:
         with self._lock:
             return {user_id: self._users[user_id] for user_id in user_ids if user_id in self._users}
+
+    def registration_counts_by_day(self) -> dict[date, int]:
+        """Aggregate signups without returning account records to the dashboard."""
+        counts: dict[date, int] = {}
+        with self._lock:
+            for user in self._users.values():
+                day = user.created_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+                counts[day] = counts.get(day, 0) + 1
+        return counts
 
     def update_display_name(self, user_id: str, display_name: str) -> None:
         with self._lock:

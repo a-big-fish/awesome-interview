@@ -1,7 +1,7 @@
 """PostgreSQL storage for independently owned interview experiences."""
 
 from typing import Callable
-from datetime import datetime
+from datetime import date, datetime
 
 import psycopg
 from psycopg.rows import DictRow, dict_row
@@ -82,6 +82,19 @@ class PostgresInterviewExperienceMapper(BaseInterviewExperienceMapper):
                 "ORDER BY updated_at DESC, id DESC", (owner_id,),
             ).fetchall()
         return [InterviewExperience.model_validate(row["payload"]) for row in rows]
+
+    def experience_counts_by_day(self) -> dict[date, tuple[int, int]]:
+        """Aggregate visibility for every saved experience without reading note text."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT (COALESCE(NULLIF(payload->>'created_at', '')::timestamptz, updated_at) "
+                "AT TIME ZONE 'Asia/Shanghai')::date AS day, "
+                "COUNT(*) FILTER (WHERE COALESCE((payload->>'is_public')::boolean, TRUE)) "
+                "AS public_count, "
+                "COUNT(*) FILTER (WHERE NOT COALESCE((payload->>'is_public')::boolean, TRUE)) "
+                "AS private_count FROM personal_interview_experiences GROUP BY day"
+            ).fetchall()
+        return {row["day"]: (row["public_count"], row["private_count"]) for row in rows}
 
     def list_public_experiences(self) -> list[InterviewExperience]:
         with self._connect() as connection:

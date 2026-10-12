@@ -1,5 +1,6 @@
 param(
-    [string]$Serial = 'emulator-5554'
+    [string]$Serial = 'emulator-5554',
+    [string]$Round = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,6 +22,10 @@ if ($Serial.StartsWith('emulator-')) {
 $chinaZone = [TimeZoneInfo]::FindSystemTimeZoneById('China Standard Time')
 $day = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $chinaZone).ToString('yyyy-MM-dd')
 $destination = Join-Path $repoRoot "app\acceptance\$day"
+if ($Round) {
+    if ($Round -notmatch '^[a-z0-9-]+$') { throw 'Round 只允许小写字母、数字和连字符' }
+    $destination = Join-Path $destination $Round
+}
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 
 & $adb -s $Serial install -r $apk | Out-Null
@@ -33,11 +38,16 @@ $screens = @(
     @{ Mode = 'export-page2'; Name = '04-native-export-page-2.png' },
     @{ Mode = 'export-options'; Name = '05-native-export-settings.png' }
 )
+if ($Round -eq 'buttons') {
+    $screens += @{ Mode = 'dashboard-home'; Name = '06-native-home-buttons.png' }
+    $screens += @{ Mode = 'dashboard-calendar'; Name = '07-native-calendar-buttons.png' }
+    $screens += @{ Mode = 'event-detail'; Name = '08-native-event-detail-buttons.png' }
+}
 foreach ($screen in $screens) {
     & $adb -s $Serial shell am force-stop xyz.hunaochufang.awesomeinterview | Out-Null
     & $adb -s $Serial shell am start -n 'xyz.hunaochufang.awesomeinterview/.MainActivity' --es acceptance_screen $screen.Mode | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "无法打开验收页面：$($screen.Mode)" }
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 5
     & $adb -s $Serial shell screencap -p /sdcard/Download/awesome-acceptance.png | Out-Null
     $target = Join-Path $destination $screen.Name
     & $adb -s $Serial pull /sdcard/Download/awesome-acceptance.png $target | Out-Null

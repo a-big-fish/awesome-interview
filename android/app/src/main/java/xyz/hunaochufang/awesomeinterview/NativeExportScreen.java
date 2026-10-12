@@ -64,13 +64,13 @@ final class NativeExportScreen extends LinearLayout {
         title.setTypeface(null, Typeface.BOLD);
         title.setTextColor(Color.rgb(18, 33, 64));
         heading.addView(title, new LayoutParams(0, dp(46), 1));
-        Button back = button("返回");
+        Button back = button("返回", NativeButtons.Role.TEXT);
         back.setOnClickListener(v -> actions.back());
         heading.addView(back);
         addView(heading);
 
-        settingsToggle = button("导出设置  ▾");
-        addView(settingsToggle, new LayoutParams(-1, dp(42)));
+        settingsToggle = button("导出设置  ▾", NativeButtons.Role.TONAL);
+        addView(settingsToggle, new LayoutParams(-1, dp(48)));
         ScrollView optionsScroll = new ScrollView(context);
         LinearLayout options = new LinearLayout(context);
         options.setOrientation(VERTICAL);
@@ -92,7 +92,7 @@ final class NativeExportScreen extends LinearLayout {
         hideCompany = option(options, "隐藏公司");
         hidePosition = option(options, "隐藏岗位");
         hideInterviewTime = option(options, "隐藏面试时间");
-        Button hideAll = button("隐藏所有回答和面试时间");
+        Button hideAll = button("隐藏所有回答和面试时间", NativeButtons.Role.OUTLINED);
         hideAll.setOnClickListener(v -> {
             hideOnSite.setChecked(true);
             hideReview.setChecked(true);
@@ -101,7 +101,7 @@ final class NativeExportScreen extends LinearLayout {
             actions.refresh();
         });
         options.addView(hideAll);
-        Button update = button("更新预览");
+        Button update = button("更新预览", NativeButtons.Role.PRIMARY);
         update.setOnClickListener(v -> actions.refresh());
         options.addView(update);
 
@@ -115,20 +115,28 @@ final class NativeExportScreen extends LinearLayout {
         status.setText("正在生成预览…");
         addView(status, new LayoutParams(-1, dp(32)));
         LinearLayout controls = new LinearLayout(context);
-        previous = button("上一页");
-        next = button("下一页");
+        previous = button("上一页", NativeButtons.Role.OUTLINED);
+        next = button("下一页", NativeButtons.Role.OUTLINED);
         previous.setOnClickListener(v -> renderPage(pageIndex - 1));
         next.setOnClickListener(v -> renderPage(pageIndex + 1));
-        controls.addView(previous, new LayoutParams(0, dp(44), 1));
-        controls.addView(next, new LayoutParams(0, dp(44), 1));
+        LayoutParams previousParams = new LayoutParams(0, dp(48), 1);
+        previousParams.rightMargin = dp(6);
+        controls.addView(previous, previousParams);
+        LayoutParams nextParams = new LayoutParams(0, dp(48), 1);
+        nextParams.leftMargin = dp(6);
+        controls.addView(next, nextParams);
         addView(controls);
         LinearLayout saves = new LinearLayout(context);
-        savePage = button("保存本页图片");
-        savePdf = button("保存整份 PDF");
+        savePage = button("保存本页图片", NativeButtons.Role.PRIMARY);
+        savePdf = button("保存整份 PDF", NativeButtons.Role.TONAL);
         savePage.setOnClickListener(v -> actions.savePage());
         savePdf.setOnClickListener(v -> actions.savePdf());
-        saves.addView(savePage, new LayoutParams(0, dp(44), 1));
-        saves.addView(savePdf, new LayoutParams(0, dp(44), 1));
+        LayoutParams savePageParams = new LayoutParams(0, dp(48), 1);
+        savePageParams.rightMargin = dp(6);
+        saves.addView(savePage, savePageParams);
+        LayoutParams savePdfParams = new LayoutParams(0, dp(48), 1);
+        savePdfParams.leftMargin = dp(6);
+        saves.addView(savePdf, savePdfParams);
         addView(saves);
         updateButtons();
     }
@@ -137,12 +145,8 @@ final class NativeExportScreen extends LinearLayout {
         return (int) (value * getResources().getDisplayMetrics().density + .5f);
     }
 
-    private Button button(String label) {
-        Button value = new Button(getContext());
-        value.setText(label);
-        value.setAllCaps(false);
-        value.setTextSize(12);
-        return value;
+    private Button button(String label, NativeButtons.Role role) {
+        return NativeButtons.make(getContext(), label, role);
     }
 
     private CheckBox option(LinearLayout parent, String label) {

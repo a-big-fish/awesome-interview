@@ -130,10 +130,9 @@ final class NativeDashboard extends ScrollView {
         heading.setGravity(Gravity.CENTER_VERTICAL);
         heading.addView(text("待办事项", 19, INK, true), new LinearLayout.LayoutParams(0, dp(45), 1));
         TextView add = text("＋ 新建", 14, TEAL, true);
-        add.setPadding(dp(14), 0, dp(14), 0);
-        add.setBackground(background(PALE, 18, Color.TRANSPARENT));
+        NativeButtons.style(add, NativeButtons.Role.TONAL);
         add.setOnClickListener(v -> actions.createTodo(selected));
-        heading.addView(add, new LinearLayout.LayoutParams(-2, dp(36)));
+        heading.addView(add, new LinearLayout.LayoutParams(-2, dp(48)));
         content.addView(heading);
         TextView hint = text("勾选完成，长按可删除", 12, MUTED, false);
         hint.setPadding(0, 0, 0, dp(10));
@@ -208,27 +207,31 @@ final class NativeDashboard extends ScrollView {
         LinearLayout title = new LinearLayout(getContext());
         title.setGravity(Gravity.CENTER_VERTICAL);
         TextView back = text("‹", 28, TEAL, false);
-        back.setGravity(Gravity.CENTER);
+        NativeButtons.style(back, NativeButtons.Role.TONAL);
+        back.setTextSize(26);
+        back.setContentDescription("上一" + (weekMode ? "周" : "月"));
         back.setOnClickListener(v -> movePeriod(-1));
-        title.addView(back, new LinearLayout.LayoutParams(dp(38), dp(42)));
+        title.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
         TextView month = text(visibleMonth.format(DateTimeFormatter.ofPattern("yyyy 年 M 月")),
                 21, INK, true);
         month.setGravity(Gravity.CENTER);
-        title.addView(month, new LinearLayout.LayoutParams(0, dp(42), 1));
+        title.addView(month, new LinearLayout.LayoutParams(0, dp(48), 1));
         TextView next = text("›", 28, TEAL, false);
-        next.setGravity(Gravity.CENTER);
+        NativeButtons.style(next, NativeButtons.Role.TONAL);
+        next.setTextSize(26);
+        next.setContentDescription("下一" + (weekMode ? "周" : "月"));
         next.setOnClickListener(v -> movePeriod(1));
-        title.addView(next, new LinearLayout.LayoutParams(dp(38), dp(42)));
+        title.addView(next, new LinearLayout.LayoutParams(dp(48), dp(48)));
         header.addView(title);
         LinearLayout switcher = new LinearLayout(getContext());
         switcher.setBackground(background(Color.rgb(236, 244, 245), 12, Color.TRANSPARENT));
         for (boolean mode : new boolean[]{false, true}) {
             TextView option = text(mode ? "周视图" : "月视图", 14,
                     weekMode == mode ? Color.WHITE : MUTED, weekMode == mode);
-            option.setGravity(Gravity.CENTER);
-            if (weekMode == mode) option.setBackground(background(TEAL, 11, Color.TRANSPARENT));
+            NativeButtons.style(option, weekMode == mode
+                    ? NativeButtons.Role.PRIMARY : NativeButtons.Role.TEXT);
             option.setOnClickListener(v -> { weekMode = mode; render(); });
-            switcher.addView(option, new LinearLayout.LayoutParams(0, dp(38), 1));
+            switcher.addView(option, new LinearLayout.LayoutParams(0, dp(48), 1));
         }
         header.addView(switcher);
         body.addView(header);

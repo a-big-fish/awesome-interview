@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Build;
@@ -138,15 +139,13 @@ public final class MainActivity extends Activity {
                             navigateAppPage(paths[which]);
                         }).show());
         top.addView(brand, new LinearLayout.LayoutParams(0, dp(54), 1));
-        Button deviceStatus = new Button(this);
-        deviceStatus.setText("本机");
-        deviceStatus.setAllCaps(false);
+        Button deviceStatus = NativeButtons.make(this, "本机", NativeButtons.Role.TONAL);
         deviceStatus.setTextSize(12);
         deviceStatus.setOnClickListener(v -> showDeviceStatus());
-        top.addView(deviceStatus, new LinearLayout.LayoutParams(dp(58), dp(48)));
-        Button logout = new Button(this);
-        logout.setText("退出");
-        logout.setAllCaps(false);
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(dp(58), dp(48));
+        statusParams.rightMargin = dp(6);
+        top.addView(deviceStatus, statusParams);
+        Button logout = NativeButtons.make(this, "退出", NativeButtons.Role.OUTLINED);
         logout.setTextSize(12);
         logout.setOnClickListener(v -> web.evaluateJavascript(
                 "(function(){let f=document.querySelector('.nav-logout-form');if(f)f.submit()})()", null));
@@ -279,8 +278,7 @@ public final class MainActivity extends Activity {
         offline.setMovementMethod(ScrollingMovementMethod.getInstance());
         offline.setVisibility(View.GONE);
         content.addView(offline, new FrameLayout.LayoutParams(-1, -1));
-        retry = new Button(this);
-        retry.setText("重试连接");
+        retry = NativeButtons.make(this, "重试连接", NativeButtons.Role.PRIMARY);
         retry.setVisibility(View.GONE);
         retry.setOnClickListener(v -> web.reload());
         root.addView(retry);
@@ -300,6 +298,9 @@ public final class MainActivity extends Activity {
             tab.setGravity(Gravity.CENTER);
             tab.setCompoundDrawablesWithIntrinsicBounds(0, icons[i], 0, 0);
             tab.setCompoundDrawablePadding(dp(4));
+            tab.setMinHeight(dp(58));
+            tab.setClickable(true);
+            tab.setFocusable(true);
             tab.setOnClickListener(v -> selectTab(index));
             tabs[i] = tab;
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(58), 1);
@@ -325,6 +326,26 @@ public final class MainActivity extends Activity {
     }
 
     private boolean showAcceptanceFixture(String screen) {
+        if ("dashboard-home".equals(screen) || "dashboard-calendar".equals(screen)) {
+            initialHomePending = false;
+            activeTab = "dashboard-home".equals(screen) ? 0 : 1;
+            updateNavigation();
+            dashboard.setSnapshot(new JSONObject());
+            showNative("dashboard-calendar".equals(screen));
+            return true;
+        }
+        if ("event-detail".equals(screen)) {
+            initialHomePending = false;
+            activeTab = 2;
+            updateNavigation();
+            try {
+                eventScreen.showEvent(new JSONObject("{\"id\":\"acceptance-event\",\"title\":\"示例面试\"," +
+                        "\"type\":\"interview\",\"start_at\":\"2026-10-12T10:00:00+08:00\"," +
+                        "\"end_at\":\"2026-10-12T11:00:00+08:00\"}"));
+            } catch (Exception error) { return false; }
+            showEventScreen();
+            return true;
+        }
         if ("event".equals(screen) || "event-reminders".equals(screen)) {
             initialHomePending = false;
             activeTab = 2;
@@ -363,11 +384,11 @@ public final class MainActivity extends Activity {
         return (int) (value * getResources().getDisplayMetrics().density + .5f);
     }
 
-    private GradientDrawable tabBackground(boolean active) {
+    private RippleDrawable tabBackground(boolean active) {
         GradientDrawable shape = new GradientDrawable();
         shape.setColor(active ? Color.rgb(221, 245, 243) : Color.TRANSPARENT);
         shape.setCornerRadius(dp(15));
-        return shape;
+        return new RippleDrawable(ColorStateList.valueOf(0x28007A7F), shape, null);
     }
 
     private void updateNavigation() {

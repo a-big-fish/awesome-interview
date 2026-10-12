@@ -127,13 +127,9 @@ final class NativeEventScreen extends ScrollView {
         return input;
     }
 
-    private Button button(String label, boolean primary) {
-        Button view = new Button(getContext());
-        view.setText(label);
-        view.setAllCaps(false);
-        view.setTextColor(primary ? Color.WHITE : Color.rgb(35, 75, 180));
-        view.setBackground(background(primary ? Color.rgb(36, 88, 255) : Color.WHITE));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(50));
+    private Button button(String label, NativeButtons.Role role) {
+        Button view = NativeButtons.make(getContext(), label, role);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(52));
         params.topMargin = dp(16);
         body.addView(view, params);
         return view;
@@ -179,7 +175,7 @@ final class NativeEventScreen extends ScrollView {
             invitation.setMinLines(3);
             invitation.setGravity(Gravity.TOP);
             invitation.getLayoutParams().height = dp(116);
-            Button parse = button("解析邀请并填入下方", false);
+            Button parse = button("解析邀请并填入下方", NativeButtons.Role.TONAL);
             parse.setOnClickListener(v -> {
                 String raw = invitation.getText().toString().trim();
                 if (raw.isEmpty()) invitation.setError("请先粘贴邀请内容");
@@ -239,7 +235,7 @@ final class NativeEventScreen extends ScrollView {
                 if (saved.optInt(j) == offsets[i]) checks[i].setChecked(true);
             body.addView(checks[i]);
         }
-        button("保存日程", true).setOnClickListener(v -> {
+        button("保存日程", NativeButtons.Role.PRIMARY).setOnClickListener(v -> {
             if (title.getText().toString().trim().isEmpty() || !end.isAfter(start)) {
                 title.setError("请填写标题，并确认结束时间晚于开始时间");
                 return;
@@ -261,7 +257,7 @@ final class NativeEventScreen extends ScrollView {
                 actions.save(eventId, payload);
             } catch (Exception error) { title.setError("无法保存日程"); }
         });
-        button("返回", false).setOnClickListener(v -> actions.back());
+        button("返回", NativeButtons.Role.OUTLINED).setOnClickListener(v -> actions.back());
         scrollTo(0, 0);
     }
 
@@ -278,9 +274,9 @@ final class NativeEventScreen extends ScrollView {
                 body.addView(text(value, 16, false));
             }
         }
-        button("编辑日程", true).setOnClickListener(v -> showForm(event));
-        button("删除日程", false).setOnClickListener(v -> actions.delete(eventId));
-        button("返回日历", false).setOnClickListener(v -> actions.back());
+        button("编辑日程", NativeButtons.Role.PRIMARY).setOnClickListener(v -> showForm(event));
+        button("删除日程", NativeButtons.Role.DANGER).setOnClickListener(v -> actions.delete(eventId));
+        button("返回日历", NativeButtons.Role.OUTLINED).setOnClickListener(v -> actions.back());
         scrollTo(0, 0);
     }
 }

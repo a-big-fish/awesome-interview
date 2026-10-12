@@ -320,7 +320,43 @@ public final class MainActivity extends Activity {
             pendingEventId = eventId;
             updateNavigation();
         }
+        if (BuildConfig.DEBUG && showAcceptanceFixture(getIntent().getStringExtra("acceptance_screen"))) return;
         web.loadUrl(ORIGIN + BASE + "/experiences/plaza");
+    }
+
+    private boolean showAcceptanceFixture(String screen) {
+        if ("event".equals(screen) || "event-reminders".equals(screen)) {
+            initialHomePending = false;
+            activeTab = 2;
+            updateNavigation();
+            eventScreen.showNew();
+            showEventScreen();
+            if ("event-reminders".equals(screen))
+                eventScreen.post(() -> eventScreen.scrollTo(0, eventScreen.getChildAt(0).getHeight()));
+            return true;
+        }
+        if (!"export".equals(screen) && !"export-page2".equals(screen) &&
+                !"export-options".equals(screen)) return false;
+        try {
+            File fixture = File.createTempFile("acceptance-export-", ".pdf", getCacheDir());
+            try (InputStream input = getAssets().open("acceptance-export.pdf");
+                 OutputStream output = new FileOutputStream(fixture)) { copy(input, output); }
+            initialHomePending = false;
+            activeTab = 3;
+            updateNavigation();
+            web.setVisibility(View.GONE);
+            dashboard.setVisibility(View.GONE);
+            eventScreen.setVisibility(View.GONE);
+            exportScreen.setVisibility(View.VISIBLE);
+            navigation.setVisibility(View.VISIBLE);
+            exportScreen.open(fixture);
+            if ("export-page2".equals(screen)) exportScreen.showPage(2);
+            if ("export-options".equals(screen)) exportScreen.showOptions();
+            return true;
+        } catch (Exception error) {
+            Toast.makeText(this, "验收示例无法打开", Toast.LENGTH_LONG).show();
+            return false;
+        }
     }
 
     private int dp(float value) {

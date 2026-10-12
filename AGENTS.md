@@ -78,6 +78,7 @@ mockups/                           # 原型 HTML/CSS/JS 与截图
 - API 测试使用 FastAPI `TestClient`，需要时用依赖注入替换 Service、Mapper 或文件存储，避免污染全局状态。
 - 涉及时间表 UI、上传简历、详情页、PDF 预览或 AI 对话时，先运行服务手动验证主流程。
 - AI Provider 测试使用 mock transport 或静态 Provider，不能在测试中请求真实远程模型。
+- 每轮 Android 开发结束后，用设备或模拟器运行 APK，在 `app/acceptance/YYYY-MM-DD/` 保存本轮页面的真实截图、`manifest.json` 和验收说明；合成示例数据须明确标注，不得以示意图冒充运行截图，也不得包含真实用户资料。
 - 不要提交 `.env`；新增配置时同步更新 `.env.example`。
 - `docs/` 是本地文档目录，已加入 `.gitignore`；更新文档时保留在本地，不用 `git add -f` 强制提交。
 

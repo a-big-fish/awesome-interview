@@ -31,6 +31,7 @@ final class NativeExportScreen extends LinearLayout {
 
     private final Actions actions;
     private final Spinner style;
+    private final Button settingsToggle;
     private final CheckBox hideOnSite;
     private final CheckBox hideReview;
     private final CheckBox hideInterviewer;
@@ -68,11 +69,19 @@ final class NativeExportScreen extends LinearLayout {
         heading.addView(back);
         addView(heading);
 
+        settingsToggle = button("导出设置  ▾");
+        addView(settingsToggle, new LayoutParams(-1, dp(42)));
         ScrollView optionsScroll = new ScrollView(context);
         LinearLayout options = new LinearLayout(context);
         options.setOrientation(VERTICAL);
         optionsScroll.addView(options);
         addView(optionsScroll, new LayoutParams(-1, dp(150)));
+        optionsScroll.setVisibility(GONE);
+        settingsToggle.setOnClickListener(v -> {
+            boolean expanded = optionsScroll.getVisibility() != VISIBLE;
+            optionsScroll.setVisibility(expanded ? VISIBLE : GONE);
+            settingsToggle.setText(expanded ? "收起导出设置  ▴" : "导出设置  ▾");
+        });
         style = new Spinner(context);
         style.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item,
                 new String[]{"简洁线条", "扁平列表"}));
@@ -208,6 +217,8 @@ final class NativeExportScreen extends LinearLayout {
     Bitmap bitmap() { return pageBitmap; }
     File pdfFile() { return pdfFile; }
     int pageNumber() { return pageIndex + 1; }
+    void showPage(int number) { renderPage(number - 1); }
+    void showOptions() { settingsToggle.performClick(); }
 
     void close() {
         preview.setImageDrawable(null);

@@ -9,6 +9,7 @@ import android.app.KeyguardManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
 import android.content.res.ColorStateList;
 import android.net.Uri;
@@ -40,12 +41,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.time.LocalDate;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,12 +63,18 @@ public final class MainActivity extends Activity {
     private static final int UNLOCK_REQUEST = 11;
     private static final int NOTICE_REQUEST = 12;
     private static final int DOWNLOAD_REQUEST = 13;
+    private static final int PAGE_IMAGE_REQUEST = 14;
+    private static final int EXPORT_PDF_REQUEST = 15;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private WebView web;
     private TextView offline;
     private LinearLayout navigation;
     private NativeDashboard dashboard;
+    private NativeEventScreen eventScreen;
+    private NativeExportScreen exportScreen;
+    private String exportExperienceId;
+    private int exportGeneration;
     private final TextView[] tabs = new TextView[5];
     private JSONObject currentSnapshot;
     private String sessionCsrf;
@@ -75,7 +85,9 @@ public final class MainActivity extends Activity {
     private String downloadUrl;
     private long lastSyncAttempt;
     private final AtomicBoolean snapshotSyncQueued = new AtomicBoolean();
+    private final AtomicBoolean snapshotRefreshPending = new AtomicBoolean();
     private boolean offlineVisible;
+    private String pendingEventId;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -153,6 +165,14 @@ public final class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri target = request.getUrl();
+                if (request.isForMainFrame() && "https".equals(target.getScheme()) &&
+                        SERVER_AUTHORITY.equals(target.getAuthority()) &&
+                        target.getPath() != null &&
+                        target.getPath().matches("^/my-schedule/experiences/[0-9a-fA-F-]{36}/export$")) {
+                    String[] parts = target.getPath().split("/");
+                    showNativeExport(parts[parts.length - 2]);
+                    return true;
+                }
                 if ("https".equals(target.getScheme()) && SERVER_AUTHORITY.equals(target.getAuthority())) return false;
                 if ("https".equals(target.getScheme()) || "http".equals(target.getScheme())) {
                     startActivity(new Intent(Intent.ACTION_VIEW, target));
@@ -173,7 +193,9 @@ public final class MainActivity extends Activity {
                     if (initialHomePending) {
                         initialHomePending = false;
                         showNative(false);
-                    } else if (dashboard.getVisibility() != View.VISIBLE) {
+                    } else if (dashboard.getVisibility() != View.VISIBLE &&
+                            exportScreen.getVisibility() != View.VISIBLE &&
+                            eventScreen.getVisibility() != View.VISIBLE) {
                         if (url.contains("/my-schedule/new")) activeTab = 2;
                         else if (url.contains("/my-schedule/experiences")) activeTab = 3;
                         else if (url.contains("/my-schedule/profile")) activeTab = 4;
@@ -225,12 +247,31 @@ public final class MainActivity extends Activity {
             @Override public void openEvent(String id) {
                 activeTab = 2;
                 updateNavigation();
-                showWeb();
-                web.loadUrl(ORIGIN + BASE + "/events/" + Uri.encode(id));
+                showEventFromSnapshot(id);
             }
         });
         dashboard.setVisibility(View.GONE);
         content.addView(dashboard, new FrameLayout.LayoutParams(-1, -1));
+        eventScreen = new NativeEventScreen(this, new NativeEventScreen.Actions() {
+            @Override public void save(String id, JSONObject payload) { writeEvent(id, payload); }
+            @Override public void parse(String rawText) { parseInvitation(rawText); }
+            @Override public void delete(String id) { confirmDeleteEvent(id); }
+            @Override public void back() {
+                activeTab = 1;
+                updateNavigation();
+                showNative(true);
+            }
+        });
+        eventScreen.setVisibility(View.GONE);
+        content.addView(eventScreen, new FrameLayout.LayoutParams(-1, -1));
+        exportScreen = new NativeExportScreen(this, new NativeExportScreen.Actions() {
+            @Override public void refresh() { loadExportPdf(); }
+            @Override public void savePage() { saveExportPage(); }
+            @Override public void savePdf() { saveExportPdf(); }
+            @Override public void back() { leaveExport(); }
+        });
+        exportScreen.setVisibility(View.GONE);
+        content.addView(exportScreen, new FrameLayout.LayoutParams(-1, -1));
         offline = new TextView(this);
         offline.setTextColor(Color.rgb(25, 40, 70));
         offline.setTextSize(15);
@@ -276,9 +317,10 @@ public final class MainActivity extends Activity {
         if (eventId != null) {
             initialHomePending = false;
             activeTab = 1;
+            pendingEventId = eventId;
             updateNavigation();
         }
-        web.loadUrl(ORIGIN + (eventId == null ? BASE + "/experiences/plaza" : BASE + "/events/" + Uri.encode(eventId)));
+        web.loadUrl(ORIGIN + BASE + "/experiences/plaza");
     }
 
     private int dp(float value) {
@@ -308,6 +350,7 @@ public final class MainActivity extends Activity {
     }
 
     private void selectTab(int index) {
+        if (exportScreen.getVisibility() == View.VISIBLE) leaveExport();
         activeTab = index;
         updateNavigation();
         if (index <= 1) {
@@ -315,8 +358,13 @@ public final class MainActivity extends Activity {
             syncSnapshot(true);
             return;
         }
-        String[] paths = {BASE + "/new", BASE + "/experiences", BASE + "/profile"};
-        navigateAppPage(paths[index - 2]);
+        if (index == 2) {
+            eventScreen.showNew();
+            showEventScreen();
+            return;
+        }
+        String[] paths = {BASE + "/experiences", BASE + "/profile"};
+        navigateAppPage(paths[index - 3]);
     }
 
     private void navigateAppPage(String path) {
@@ -340,9 +388,164 @@ public final class MainActivity extends Activity {
         offline.setVisibility(View.GONE);
         retry.setVisibility(View.GONE);
         web.setVisibility(View.GONE);
+        eventScreen.setVisibility(View.GONE);
+        exportScreen.setVisibility(View.GONE);
         dashboard.setVisibility(View.VISIBLE);
         dashboard.showCalendar(calendar);
         navigation.setVisibility(View.VISIBLE);
+    }
+
+    private void showEventScreen() {
+        offlineVisible = false;
+        offline.setVisibility(View.GONE);
+        retry.setVisibility(View.GONE);
+        web.setVisibility(View.GONE);
+        dashboard.setVisibility(View.GONE);
+        eventScreen.setVisibility(View.VISIBLE);
+        exportScreen.setVisibility(View.GONE);
+        navigation.setVisibility(View.VISIBLE);
+    }
+
+    private void showEventFromSnapshot(String id) {
+        JSONArray events = currentSnapshot == null ? null : currentSnapshot.optJSONArray("events");
+        if (events != null) for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.optJSONObject(i);
+            if (event != null && id.equals(event.optString("id"))) {
+                eventScreen.showEvent(event);
+                showEventScreen();
+                return;
+            }
+        }
+        Toast.makeText(this, "日程正在同步，请稍后重试", Toast.LENGTH_SHORT).show();
+        syncSnapshot(true);
+    }
+
+    private void confirmDeleteEvent(String id) {
+        new AlertDialog.Builder(this).setTitle("删除日程？")
+                .setMessage("删除后无法恢复")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("删除", (dialog, which) -> writeEventRequest("DELETE", id, null))
+                .show();
+    }
+
+    private void writeEvent(String id, JSONObject payload) {
+        writeEventRequest(id == null ? "POST" : "PUT", id, payload);
+    }
+
+    private void parseInvitation(String rawText) {
+        String cookie = CookieManager.getInstance().getCookie(ORIGIN);
+        if (cookie == null || cookie.isEmpty()) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String csrf = currentCsrf(cookie);
+                if (csrf == null) throw new IllegalStateException("登录已过期");
+                connection = (HttpURLConnection) new URL(ORIGIN + "/api/mobile/v1/events/parse").openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Cookie", cookie);
+                connection.setRequestProperty("X-CSRF-Token", csrf);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(10000);
+                connection.setDoOutput(true);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(new JSONObject().put("raw_text", rawText).toString()
+                            .getBytes(StandardCharsets.UTF_8));
+                }
+                if (connection.getResponseCode() != 200)
+                    throw new IllegalStateException("邀请解析失败，请检查内容或手动填写");
+                JSONObject parsed = new JSONObject(readResponse(connection.getInputStream()));
+                runOnUiThread(() -> {
+                    eventScreen.applyParsed(parsed, rawText);
+                    Toast.makeText(this, "已填入解析结果，请核对后保存", Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        });
+    }
+
+    private void writeEventRequest(String method, String id, JSONObject payload) {
+        String cookie = CookieManager.getInstance().getCookie(ORIGIN);
+        if (cookie == null || cookie.isEmpty()) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String csrf = currentCsrf(cookie);
+                if (csrf == null) throw new IllegalStateException("登录已过期");
+                String path = "/api/mobile/v1/events" + (id == null ? "" : "/" + Uri.encode(id));
+                connection = (HttpURLConnection) new URL(ORIGIN + path).openConnection();
+                connection.setRequestMethod(method);
+                connection.setRequestProperty("Cookie", cookie);
+                connection.setRequestProperty("X-CSRF-Token", csrf);
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(10000);
+                connection.setInstanceFollowRedirects(false);
+                if (payload != null) {
+                    connection.setDoOutput(true);
+                    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    try (OutputStream output = connection.getOutputStream()) {
+                        output.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+                    }
+                }
+                int status = connection.getResponseCode();
+                if (status == 409 && payload != null) {
+                    JSONObject conflict = new JSONObject(readResponse(connection.getErrorStream()));
+                    JSONArray titles = conflict.optJSONObject("detail").optJSONArray("conflicts");
+                    StringBuilder names = new StringBuilder();
+                    if (titles != null) for (int i = 0; i < titles.length(); i++) {
+                        if (i > 0) names.append("、");
+                        names.append(titles.optString(i));
+                    }
+                    runOnUiThread(() -> new AlertDialog.Builder(this)
+                            .setTitle("日程时间重叠")
+                            .setMessage(titles == null ? "与已有安排重叠，仍要保存吗？" :
+                                    "与 " + names + " 重叠，仍要保存吗？")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("仍保存", (dialog, which) -> {
+                                try { payload.put("confirm_overlap", true); }
+                                catch (Exception ignored) { }
+                                writeEventRequest(method, id, payload);
+                            }).show());
+                    return;
+                }
+                int expected = "POST".equals(method) ? 201 : "DELETE".equals(method) ? 204 : 200;
+                if (status != expected) throw new IllegalStateException("保存失败（" + status + "），请重试");
+                JSONObject saved = payload == null ? null : new JSONObject(readResponse(connection.getInputStream()));
+                runOnUiThread(() -> {
+                    if (saved != null) try {
+                        dashboard.selectDate(OffsetDateTime.parse(saved.getString("start_at"))
+                                .atZoneSameInstant(java.time.ZoneId.of("Asia/Shanghai")).toLocalDate());
+                    } catch (Exception ignored) { }
+                    activeTab = 1;
+                    updateNavigation();
+                    showNative(true);
+                    Toast.makeText(this, "DELETE".equals(method) ? "日程已删除" : "日程已保存", Toast.LENGTH_SHORT).show();
+                });
+                syncSnapshot(true);
+            } catch (Exception error) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        error.getMessage() == null ? "请求失败，请重试" : error.getMessage(), Toast.LENGTH_LONG).show());
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        });
+    }
+
+    private static String readResponse(InputStream input) throws Exception {
+        if (input == null) return "";
+        try (InputStream stream = input; ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            copy(stream, buffer);
+            return buffer.toString(StandardCharsets.UTF_8.name());
+        }
     }
 
     private void promptCreateTodo(LocalDate date) {
@@ -434,7 +637,10 @@ public final class MainActivity extends Activity {
         if (!force && now - lastSyncAttempt < 30_000) return;
         String cookie = CookieManager.getInstance().getCookie(ORIGIN);
         if (cookie == null || cookie.isEmpty()) return;
-        if (!snapshotSyncQueued.compareAndSet(false, true)) return;
+        if (!snapshotSyncQueued.compareAndSet(false, true)) {
+            if (force) snapshotRefreshPending.set(true);
+            return;
+        }
         lastSyncAttempt = now;
         executor.execute(() -> {
             HttpURLConnection connection = null;
@@ -463,6 +669,13 @@ public final class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     currentSnapshot = snapshot;
                     dashboard.setSnapshot(snapshot);
+                    if (pendingEventId != null) {
+                        String requested = pendingEventId;
+                        pendingEventId = null;
+                        activeTab = 2;
+                        updateNavigation();
+                        showEventFromSnapshot(requested);
+                    }
                 });
                 int count = ReminderScheduler.reschedule(this, snapshot);
                 if (count > 0 && Build.VERSION.SDK_INT >= 33 &&
@@ -493,12 +706,16 @@ public final class MainActivity extends Activity {
             } finally {
                 if (connection != null) connection.disconnect();
                 snapshotSyncQueued.set(false);
+                if (snapshotRefreshPending.getAndSet(false)) syncSnapshot(true);
             }
         });
     }
 
     private void signOutLocal() {
         runOnUiThread(() -> {
+            exportGeneration++;
+            exportExperienceId = null;
+            exportScreen.close();
             currentSnapshot = null;
             sessionCsrf = null;
             dashboard.setSnapshot(null);
@@ -580,6 +797,8 @@ public final class MainActivity extends Activity {
         offlineVisible = true;
         web.setVisibility(View.GONE);
         dashboard.setVisibility(View.GONE);
+        eventScreen.setVisibility(View.GONE);
+        exportScreen.setVisibility(View.GONE);
         offline.setVisibility(View.VISIBLE);
         offline.setText(message);
         retry.setVisibility(View.VISIBLE);
@@ -592,7 +811,98 @@ public final class MainActivity extends Activity {
         retry.setVisibility(View.GONE);
         navigation.setVisibility(View.VISIBLE);
         dashboard.setVisibility(View.GONE);
+        eventScreen.setVisibility(View.GONE);
+        exportScreen.setVisibility(View.GONE);
         web.setVisibility(View.VISIBLE);
+    }
+
+    private void showNativeExport(String id) {
+        exportExperienceId = id;
+        activeTab = 3;
+        updateNavigation();
+        web.setVisibility(View.GONE);
+        dashboard.setVisibility(View.GONE);
+        eventScreen.setVisibility(View.GONE);
+        exportScreen.setVisibility(View.VISIBLE);
+        navigation.setVisibility(View.VISIBLE);
+        loadExportPdf();
+    }
+
+    private void leaveExport() {
+        exportGeneration++;
+        exportExperienceId = null;
+        exportScreen.close();
+        showWeb();
+    }
+
+    private void loadExportPdf() {
+        if (exportExperienceId == null) return;
+        String id = exportExperienceId;
+        String query = exportScreen.query();
+        int generation = ++exportGeneration;
+        exportScreen.setLoading();
+        String cookie = CookieManager.getInstance().getCookie(ORIGIN);
+        if (cookie == null || cookie.isEmpty()) {
+            exportScreen.setError("请先登录后导出");
+            return;
+        }
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+            File file = null;
+            try {
+                file = File.createTempFile("experience-export-", ".pdf", getCacheDir());
+                String source = ORIGIN + BASE + "/experiences/" + Uri.encode(id) + "/export.pdf?" + query;
+                connection = (HttpURLConnection) new URL(source).openConnection();
+                connection.setRequestProperty("Cookie", cookie);
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(20000);
+                connection.setInstanceFollowRedirects(false);
+                if (connection.getResponseCode() != 200 ||
+                        connection.getContentType() == null ||
+                        !connection.getContentType().startsWith("application/pdf"))
+                    throw new IllegalStateException("导出失败，请确认登录状态后重试");
+                try (InputStream input = connection.getInputStream();
+                     OutputStream output = new FileOutputStream(file)) { copy(input, output); }
+                File ready = file;
+                runOnUiThread(() -> {
+                    if (generation != exportGeneration || exportScreen.getVisibility() != View.VISIBLE) {
+                        ready.delete();
+                        return;
+                    }
+                    try { exportScreen.open(ready); }
+                    catch (Exception error) {
+                        ready.delete();
+                        exportScreen.setError("PDF 无法预览，请重试");
+                    }
+                });
+            } catch (Exception error) {
+                if (file != null) file.delete();
+                runOnUiThread(() -> {
+                    if (generation == exportGeneration)
+                        exportScreen.setError(error.getMessage() == null ? "导出失败" : error.getMessage());
+                });
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        });
+    }
+
+    private void saveExportPage() {
+        if (exportScreen.bitmap() == null) return;
+        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.setType("image/png");
+        save.putExtra(Intent.EXTRA_TITLE, "面经-第" + exportScreen.pageNumber() + "页.png");
+        startActivityForResult(save, PAGE_IMAGE_REQUEST);
+    }
+
+    private void saveExportPdf() {
+        if (exportScreen.pdfFile() == null) return;
+        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.setType("application/pdf");
+        save.putExtra(Intent.EXTRA_TITLE, "面经.pdf");
+        startActivityForResult(save, EXPORT_PDF_REQUEST);
     }
 
     private void showDeviceStatus() {
@@ -648,6 +958,27 @@ public final class MainActivity extends Activity {
                     if (connection != null) connection.disconnect();
                 }
             });
+        } else if (request == PAGE_IMAGE_REQUEST && result == RESULT_OK && data != null) {
+            Bitmap bitmap = exportScreen.bitmap();
+            if (bitmap != null) try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+                if (output == null || !bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
+                    throw new IllegalStateException("图片保存失败");
+                Toast.makeText(this, "本页图片已保存", Toast.LENGTH_SHORT).show();
+            } catch (Exception error) {
+                Toast.makeText(this, "图片保存失败", Toast.LENGTH_LONG).show();
+            }
+        } else if (request == EXPORT_PDF_REQUEST && result == RESULT_OK && data != null) {
+            File source = exportScreen.pdfFile();
+            if (source != null) executor.execute(() -> {
+                try (InputStream input = new java.io.FileInputStream(source);
+                     OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+                    if (output == null) throw new IllegalStateException();
+                    copy(input, output);
+                    runOnUiThread(() -> Toast.makeText(this, "PDF 已保存", Toast.LENGTH_SHORT).show());
+                } catch (Exception error) {
+                    runOnUiThread(() -> Toast.makeText(this, "PDF 保存失败", Toast.LENGTH_LONG).show());
+                }
+            });
         }
     }
 
@@ -670,7 +1001,13 @@ public final class MainActivity extends Activity {
     }
 
     private void handleBack() {
-        if (offlineVisible) {
+        if (exportScreen.getVisibility() == View.VISIBLE) {
+            leaveExport();
+        } else if (eventScreen.getVisibility() == View.VISIBLE) {
+            activeTab = 1;
+            updateNavigation();
+            showNative(true);
+        } else if (offlineVisible) {
             showWeb();
             web.reload();
         } else if (activeTab == 1) {
@@ -687,6 +1024,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        exportScreen.close();
         web.destroy();
         executor.shutdown();
         super.onDestroy();
@@ -695,5 +1033,15 @@ public final class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (web != null && !initialHomePending && currentSnapshot != null) syncSnapshot(false);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String eventId = intent.getStringExtra("event_id");
+        if (eventId != null) {
+            pendingEventId = eventId;
+            syncSnapshot(true);
+        }
     }
 }

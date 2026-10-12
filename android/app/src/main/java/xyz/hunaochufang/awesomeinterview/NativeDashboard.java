@@ -77,6 +77,12 @@ final class NativeDashboard extends ScrollView {
         scrollTo(0, 0);
     }
 
+    void selectDate(LocalDate day) {
+        selected = day;
+        visibleMonth = day.withDayOfMonth(1);
+        render();
+    }
+
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + .5f);
     }

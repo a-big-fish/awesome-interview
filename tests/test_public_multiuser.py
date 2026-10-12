@@ -132,6 +132,55 @@ def test_mobile_todos_are_owner_scoped_and_require_csrf(tmp_path):
         assert alice_client.get("/api/mobile/v1/snapshot").json()["todos"] == []
 
 
+def test_native_event_api_reuses_schedule_validation_and_owner_checks(tmp_path):
+    app, mapper, _, _, _, _ = _public_fixture(tmp_path)
+    alice = AuthUser(email="alice-events@example.com", password_hash=hash_password("alice-events-password"), email_verified=True)
+    bob = AuthUser(email="bob-events@example.com", password_hash=hash_password("bob-events-password"), email_verified=True)
+    mapper.create_user(alice)
+    mapper.create_user(bob)
+    payload = {
+        "title": "原生面试日程", "event_type": "interview",
+        "start_at": "2026-10-20T10:00:00+08:00", "end_at": "2026-10-20T11:00:00+08:00",
+        "timezone": "Asia/Shanghai", "position": "后端开发",
+        "reminder_offsets_minutes": [60],
+    }
+    with TestClient(app, base_url="https://testserver") as alice_client, \
+         TestClient(app, base_url="https://testserver") as bob_client:
+        alice_csrf = _login(alice_client, alice.email, "alice-events-password")
+        bob_csrf = _login(bob_client, bob.email, "bob-events-password")
+        assert alice_client.post("/api/mobile/v1/events", json=payload).status_code == 403
+        created = alice_client.post("/api/mobile/v1/events", json=payload,
+                                    headers={"X-CSRF-Token": alice_csrf})
+        assert created.status_code == 201
+        event_id = created.json()["id"]
+        assert created.json()["reminder_offsets_minutes"] == [60]
+        assert bob_client.put(f"/api/mobile/v1/events/{event_id}", json=payload,
+                              headers={"X-CSRF-Token": bob_csrf}).status_code == 404
+        overlap = alice_client.post("/api/mobile/v1/events", json=payload,
+                                    headers={"X-CSRF-Token": alice_csrf})
+        assert overlap.status_code == 409 and overlap.json()["detail"]["conflicts"]
+        updated = alice_client.put(f"/api/mobile/v1/events/{event_id}",
+                                   json={**payload, "title": "已修改"},
+                                   headers={"X-CSRF-Token": alice_csrf})
+        assert updated.status_code == 200 and updated.json()["title"] == "已修改"
+        assert bob_client.delete(f"/api/mobile/v1/events/{event_id}",
+                                 headers={"X-CSRF-Token": bob_csrf}).status_code == 404
+        assert alice_client.delete(f"/api/mobile/v1/events/{event_id}",
+                                   headers={"X-CSRF-Token": alice_csrf}).status_code == 204
+        assert alice_client.get("/api/mobile/v1/snapshot").json()["events"] == []
+        raw = "会议主题：后端面试\n会议时间：2026/10/21 10:00-11:00 (GMT+08:00) 中国标准时间 - 北京"
+        parsed = alice_client.post("/api/mobile/v1/events/parse", json={"raw_text": raw},
+                                   headers={"X-CSRF-Token": alice_csrf})
+        assert parsed.status_code == 200
+        assert parsed.json()["start_at"].startswith("2026-10-21T10:00")
+        invited = alice_client.post("/api/mobile/v1/events",
+                                    json={**payload, "raw_invitation": raw,
+                                          "start_at": parsed.json()["start_at"],
+                                          "end_at": parsed.json()["end_at"]},
+                                    headers={"X-CSRF-Token": alice_csrf})
+        assert invited.status_code == 201 and invited.json()["source"] == "invitation"
+
+
 def test_public_mode_closes_enterprise_routes_and_requires_login(tmp_path):
     app, _, _, _, _, _ = _public_fixture(tmp_path)
     with TestClient(app, base_url="https://testserver") as client:

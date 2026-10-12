@@ -14,8 +14,8 @@ android {
         applicationId = "xyz.hunaochufang.awesomeinterview"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.0-alpha2"
+        versionCode = 3
+        versionName = "1.0.0-alpha3"
         val serverOrigin = providers.gradleProperty("serverOrigin")
             .getOrElse("https://example.invalid").trimEnd('/')
         val originUri = URI(serverOrigin)

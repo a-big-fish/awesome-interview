@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from psycopg import OperationalError
 
 from app.controller.page_controller import templates
 from app.core.auth_guard import SESSION_COOKIE
@@ -92,7 +93,14 @@ async def login(request: Request):
     identifier = str(form.get("identifier", "")).strip().casefold()
     if not _allowed(request, f"login:{identifier}", 10, 15):
         return _page(request, "login", error="尝试次数过多，请稍后再试", status_code=429)
-    result = request.app.state.auth_service.login(identifier, str(form.get("password", "")))
+    try:
+        result = request.app.state.auth_service.login(identifier, str(form.get("password", "")))
+    except OperationalError:
+        logger.exception("Database connection failed during login")
+        response = _page(request, "login", error="数据库暂时不可用，请稍后重试", status_code=503,
+                         next_path=str(form.get("next", "")), identifier=identifier)
+        response.headers["Retry-After"] = "30"
+        return response
     if not result:
         return _page(request, "login", error="账号或密码不正确，或邮箱尚未验证", status_code=401,
                      next_path=str(form.get("next", "")), identifier=identifier)

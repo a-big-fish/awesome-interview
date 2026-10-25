@@ -5,6 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pymupdf
+from psycopg import OperationalError
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -72,6 +73,24 @@ def _login(client: TestClient, identifier: str, password: str) -> str:
     assert result.status_code == 303
     assert result.headers["location"] == "/my-schedule/experiences/plaza"
     return _csrf(client.get("/my-schedule/new"))
+
+
+def test_login_shows_service_unavailable_when_database_connection_fails(tmp_path, monkeypatch):
+    app, mapper, _, _, _, _ = _public_fixture(tmp_path)
+
+    def unavailable(_identifier):
+        raise OperationalError("connection timeout expired")
+
+    monkeypatch.setattr(mapper, "find_user", unavailable)
+    with TestClient(app, base_url="https://testserver") as client:
+        response = client.post("/auth/login", data={
+            "csrf_token": _csrf(client.get("/auth/login")),
+            "identifier": "user@example.com", "password": "test-password",
+        })
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "30"
+    assert "数据库暂时不可用" in response.text
+    assert "user@example.com" in response.text
 
 
 def test_mobile_snapshot_and_reminders_are_owner_scoped(tmp_path):

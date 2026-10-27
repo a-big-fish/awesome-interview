@@ -195,6 +195,42 @@ def test_personal_calendar_week_and_month_views_keep_period_navigation():
         app.dependency_overrides.pop(get_personal_schedule_service, None)
 
 
+def test_month_calendar_keeps_multiday_tasks_continuous_across_weeks_and_months():
+    zone = ZoneInfo("Asia/Shanghai")
+    service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())
+    event = service.create_manual(
+        title="连续任务", event_type="personal",
+        start_at=datetime(2026, 9, 30, 9, tzinfo=zone),
+        end_at=datetime(2026, 10, 6, 0, tzinfo=zone),
+    )
+    service.create_manual(
+        title="重叠事项", event_type="personal", confirm_overlap=True,
+        start_at=datetime(2026, 10, 2, 10, tzinfo=zone),
+        end_at=datetime(2026, 10, 4, 11, tzinfo=zone),
+    )
+    context = _dashboard_context(service, date(2026, 10, 1), "month")
+    days = {day["date"]: day for day in context["calendar_days"]}
+    assert context["period_title"] == "2026 年 10 月 · 2 项安排"
+    for day in (date(2026, 9, 30) + timedelta(days=offset) for offset in range(6)):
+        assert any(item["id"] == event.id for item in days[day]["entries"])
+    assert not days[date(2026, 10, 6)]["entries"]
+    friday, saturday = (days[date(2026, 10, day)]["entries"] for day in (2, 3))
+    assert {item["id"]: item["month_lane"] for item in friday} == {
+        item["id"]: item["month_lane"] for item in saturday
+    }
+    monday = days[date(2026, 10, 5)]["entries"][0]
+    assert monday["continues_before"] and not monday["continues_after"]
+    app.dependency_overrides[get_personal_schedule_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            page = client.get("/my-schedule?view=month&date_value=2026-10-01")
+        assert page.status_code == 200
+        assert 'personal-period-event type-personal continues-before continues-after' in page.text
+        assert '09/30 09:00–10/06 00:00' in page.text
+    finally:
+        app.dependency_overrides.pop(get_personal_schedule_service, None)
+
+
 def test_week_timeline_splits_overnight_events_at_day_and_week_boundaries():
     zone = ZoneInfo("Asia/Shanghai")
     service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())

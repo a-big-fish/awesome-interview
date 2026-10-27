@@ -93,11 +93,14 @@
         {% for day in calendar_days %}
         <div class="personal-period-day{% if not day.in_month and selected_view == 'month' %} outside-month{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}">
           <a class="personal-period-date" href="/my-schedule?view=day&amp;date_value={{ day.date.isoformat() }}" aria-label="查看 {{ day.date.isoformat() }} 的日程">{{ day.date.strftime('%m/%d') if selected_view == 'week' or not day.in_month else day.date.day }}</a>
-          <div class="personal-period-events">
-            {% for item in day.entries[:3] %}
-            <a class="personal-period-event type-{{ item.type }}{% if item.completed_at %} is-completed{% endif %}" href="/my-schedule/events/{{ item.id }}" title="{{ item.start_time.strftime('%H:%M') }} {{ item.title }}{% if item.completed_at %} · 已完成{% endif %}">{% if item.completed_at %}✓ {% endif %}{{ item.title }}</a>
+          <div class="personal-period-events"{% if day.month_lane_count %} style="grid-template-rows: repeat({{ day.month_lane_count }}, 20px);"{% endif %}>
+            {% for item in day.entries if item.month_lane < 3 %}
+            <a class="personal-period-event type-{{ item.type }}{% if item.completed_at %} is-completed{% endif %}{% if item.continues_before %} continues-before{% endif %}{% if item.continues_after %} continues-after{% endif %}"
+               style="grid-row: {{ item.month_lane + 1 }};" href="/my-schedule/events/{{ item.id }}"
+               aria-label="{{ item.title }} · {{ item.start_time.strftime('%m/%d %H:%M') }}–{{ item.end_time.strftime('%m/%d %H:%M') }}{% if item.completed_at %} · 已完成{% endif %}"
+               title="{{ item.title }} · {{ item.start_time.strftime('%m/%d %H:%M') }}–{{ item.end_time.strftime('%m/%d %H:%M') }}{% if item.continues_before %} · 从前一天延续{% endif %}{% if item.continues_after %} · 延续到次日{% endif %}{% if item.completed_at %} · 已完成{% endif %}">{% if item.continues_before %}← {% endif %}{% if item.completed_at %}✓ {% endif %}{{ item.title }}</a>
             {% endfor %}
-            {% if day.entries|length > 3 %}<span class="personal-period-more">另有 {{ day.entries|length - 3 }} 项</span>{% endif %}
+            {% if day.overflow_count %}<a class="personal-period-more" href="/my-schedule?view=day&amp;date_value={{ day.date.isoformat() }}">另有 {{ day.overflow_count }} 项</a>{% endif %}
           </div>
         </div>
         {% endfor %}

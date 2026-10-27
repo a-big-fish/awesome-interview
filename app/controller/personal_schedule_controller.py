@@ -75,6 +75,36 @@ def _week_day_segments(events: list[dict[str, Any]], day: date) -> list[dict[str
     return segments
 
 
+def _month_day_entries(events: list[dict[str, Any]], dates: list[date]) -> dict[date, list[dict[str, Any]]]:
+    """Keep each event on one lane across a month calendar's weekly row."""
+    entries: dict[date, list[dict[str, Any]]] = {day: [] for day in dates}
+    for offset in range(0, len(dates), 7):
+        week = dates[offset:offset + 7]
+        week_start = datetime.combine(week[0], datetime.min.time(), DISPLAY_ZONE)
+        week_end = week_start + timedelta(days=len(week))
+        visible = sorted(
+            (item for item in events if item["start_time"] < week_end and item["end_time"] > week_start),
+            key=lambda item: (item["start_time"], item["end_time"], item["id"]),
+        )
+        lane_ends: list[int] = []
+        for item in visible:
+            first = max(0, (item["start_time"].date() - week[0]).days)
+            last = min(len(week) - 1, ((item["end_time"] - timedelta(microseconds=1)).date() - week[0]).days)
+            lane = next((index for index, end in enumerate(lane_ends) if end < first), len(lane_ends))
+            if lane == len(lane_ends):
+                lane_ends.append(last)
+            else:
+                lane_ends[lane] = last
+            for index in range(first, last + 1):
+                day_start = week_start + timedelta(days=index)
+                entries[week[index]].append({
+                    **item, "month_lane": lane,
+                    "continues_before": item["start_time"] < day_start,
+                    "continues_after": item["end_time"] > day_start + timedelta(days=1),
+                })
+    return entries
+
+
 def _dashboard_context(service: PersonalScheduleService, selected_date: date,
                        selected_view: str = "day") -> dict[str, Any]:
     now = datetime.now(DISPLAY_ZONE)
@@ -123,19 +153,30 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
         period_dates = [period_start + timedelta(days=offset) for offset in range(42)]
         prev_date = (first - timedelta(days=1)).replace(day=1)
         next_date = (first + timedelta(days=32)).replace(day=1)
-        period_title = f"{first.year} 年 {first.month} 月 · {sum(item['start_time'].year == first.year and item['start_time'].month == first.month for item in event_views)} 项安排"
+        month_start = datetime.combine(first, datetime.min.time(), DISPLAY_ZONE)
+        month_end = datetime.combine(next_date, datetime.min.time(), DISPLAY_ZONE)
+        month_count = sum(item["start_time"] < month_end and item["end_time"] > month_start
+                          for item in event_views)
+        period_title = f"{first.year} 年 {first.month} 月 · {month_count} 项安排"
     else:
         period_dates = []
         prev_date = selected_date - timedelta(days=1)
         next_date = selected_date + timedelta(days=1)
         period_title = f"{selected_date} {WEEKDAY_NAMES[selected_date.weekday()]} · {len(views)} 项安排"
     if period_dates:
-        events_by_day: dict[date, list[dict[str, Any]]] = {}
-        for item in event_views:
-            events_by_day.setdefault(item["start_time"].date(), []).append(item)
+        events_by_day = _month_day_entries(event_views, period_dates) if selected_view == "month" else {}
+        month_week_lanes: dict[date, int] = {}
+        if selected_view == "month":
+            for offset in range(0, len(period_dates), 7):
+                week = period_dates[offset:offset + 7]
+                lanes = min(3, max((item["month_lane"] + 1 for day in week
+                                    for item in events_by_day[day]), default=0))
+                month_week_lanes.update(dict.fromkeys(week, lanes))
         calendar_days = [{
             "date": day,
             "entries": events_by_day.get(day, []),
+            "overflow_count": sum(item["month_lane"] >= 3 for item in events_by_day.get(day, [])),
+            "month_lane_count": month_week_lanes.get(day, 0),
             "week_segments": _week_day_segments(event_views, day) if selected_view == "week" else [],
             "in_month": day.month == selected_date.month,
             "is_today": day == now.date(),

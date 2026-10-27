@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     pg_user: str = "postgres"
     pg_password: str = ""
     pg_connect_timeout_seconds: float = 5.0
+    performance_enabled: bool = True
+    performance_db_path: str = "data/performance.sqlite3"
 
     rustfs_endpoint_url: str = "http://127.0.0.1:9007"
     rustfs_access_key_id: str = ""

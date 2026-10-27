@@ -2,6 +2,7 @@
 {% block title %}Awesome Interview{% endblock %}
 {% block body_class %}page-wide personal-app personal-scroll-page{% endblock %}
 {% block styles %}
+{% if request.app.state.settings.app_mode == 'public_personal' and request.app.state.settings.performance_enabled and request.state.user is defined %}<meta name="performance-csrf" content="{{ request.state.csrf_token }}"><script src="{{ asset_url('js/performance_collector.js') }}" defer></script>{% endif %}
 <link rel="stylesheet" href="{{ asset_url('css/interview-experience-card.css') }}">
 <link rel="stylesheet" href="{{ asset_url('css/interview-experience-lines.css') }}">
 <link rel="stylesheet" href="{{ asset_url('css/interview-experience-plaza.css') }}">

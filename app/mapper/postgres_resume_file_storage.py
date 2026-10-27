@@ -5,6 +5,7 @@ from typing import Callable
 import psycopg
 from psycopg.rows import dict_row
 
+from app.core.performance import timed_postgres_connect
 from app.core.config import Settings
 from app.core.postgres import ensure_postgres_database
 from app.mapper.base_resume_file_storage import ResumeFileStorage
@@ -27,7 +28,7 @@ class PostgresResumeFileStorage(ResumeFileStorage):
     def _default_connection(self) -> psycopg.Connection:
         if not self.settings:
             raise RuntimeError("PostgreSQL settings are required")
-        return psycopg.connect(self.settings.postgres_dsn, row_factory=dict_row)
+        return timed_postgres_connect(self.settings.postgres_dsn, row_factory=dict_row)
 
     def _ensure_schema(self) -> None:
         with self._connect() as connection:

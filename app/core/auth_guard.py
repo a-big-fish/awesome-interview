@@ -1,10 +1,12 @@
 """Request authentication and CSRF checks for the public personal router."""
 
 import hmac
+from starlette.concurrency import run_in_threadpool
 
 from fastapi import Request
 
 from app.model.auth import AuthUser
+from app.core.performance import measure_phase
 
 
 SESSION_COOKIE = "schedule_session"
@@ -19,7 +21,9 @@ class InvalidCsrf(Exception):
 
 
 async def require_current_user(request: Request) -> AuthUser:
-    result = request.app.state.auth_service.authenticate(request.cookies.get(SESSION_COOKIE))
+    with measure_phase("auth"):
+        result = await run_in_threadpool(request.app.state.auth_service.authenticate,
+                                         request.cookies.get(SESSION_COOKIE))
     if not result:
         raise AuthRequired
     user, session = result

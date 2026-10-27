@@ -41,6 +41,7 @@ def _public_fixture(tmp_path, *, email_verification_required=True, registration_
         registration_invite_code="trial-invite", smtp_host="mail.test" if email_verification_required else "",
         smtp_from="noreply@test.local" if email_verification_required else "",
         public_base_url="https://testserver",
+        performance_db_path=str(tmp_path / "performance.sqlite3"),
     )
     mapper = MemoryAuthMapper()
     mailer = CapturingMailer()

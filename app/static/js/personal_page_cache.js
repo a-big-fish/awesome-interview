@@ -50,6 +50,7 @@
   };
 
   function render(html, resetScroll) {
+    const renderStarted = performance.now();
     const page = new DOMParser().parseFromString(html, 'text/html');
     const nextMain = page.querySelector('.page > main');
     const currentMain = document.querySelector('.page > main');
@@ -62,6 +63,9 @@
     pageEdited = false;
     if (resetScroll) window.scrollTo(0, 0);
     document.dispatchEvent(new Event('personal:navigated'));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.awesomeInterviewPerformance?.recordRender(performance.now() - renderStarted);
+    }));
   }
 
   async function navigate(url, addHistory = true) {

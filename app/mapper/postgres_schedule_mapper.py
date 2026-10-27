@@ -5,6 +5,7 @@ import psycopg
 from psycopg.rows import DictRow, dict_row
 from psycopg.types.json import Json
 
+from app.core.performance import timed_postgres_connect
 from app.core.config import Settings
 from app.core.postgres import ensure_postgres_database
 from app.mapper.base_schedule_mapper import BaseScheduleMapper
@@ -28,7 +29,7 @@ class PostgresScheduleMapper(BaseScheduleMapper):
     def _default_connection(self) -> psycopg.Connection[DictRow]:
         if not self.settings:
             raise RuntimeError("PostgreSQL settings are required")
-        return psycopg.connect(
+        return timed_postgres_connect(
             self.settings.postgres_dsn,
             row_factory=dict_row,
         )

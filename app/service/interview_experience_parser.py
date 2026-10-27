@@ -6,6 +6,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import pymupdf
+from app.core.performance import timed_phase
 
 from app.model.interview_experience import CATEGORY_LABELS
 
@@ -27,6 +28,7 @@ SECTION_CATEGORIES = (
 )
 
 
+@timed_phase("parse_text")
 def parse_experience_text(source: str) -> dict:
     """Parse visible numbering and adjacent answers without semantic guesses."""
     if not isinstance(source, str) or len(source) > 100000:
@@ -143,6 +145,7 @@ def _heading_category(value: str) -> str | None:
     return None
 
 
+@timed_phase("parse_markdown")
 def parse_experience_markdown(source: str) -> dict:
     """Parse Markdown headings and lists into editable question hierarchy."""
     if not isinstance(source, str) or len(source) > 100000:
@@ -293,6 +296,7 @@ def parse_experience_markdown(source: str) -> dict:
             "warnings": warnings}
 
 
+@timed_phase("pdf_extract")
 def extract_experience_pdf(content: bytes) -> str:
     """Extract a text-layer PDF as Markdown-like headings and questions."""
     try:

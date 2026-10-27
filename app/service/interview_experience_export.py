@@ -1,6 +1,7 @@
 """Portable Markdown and PDF exports for one personal interview experience."""
 
 import pymupdf
+from app.core.performance import timed_phase
 
 from app.model.interview_experience import CATEGORY_LABELS, InterviewExperience
 
@@ -43,6 +44,7 @@ def export_sections(rows: list[dict], style: str) -> list[tuple[str | None, list
             if (group := _category_rows(rows, category))]
 
 
+@timed_phase("markdown_render")
 def export_markdown(experience: InterviewExperience, rows: list[dict],
                     style: str = "lines", *, hide_on_site_answer: bool = False,
                     hide_review_answer: bool = False,
@@ -85,6 +87,7 @@ def export_markdown(experience: InterviewExperience, rows: list[dict],
     return "\n".join(lines).rstrip() + "\n"
 
 
+@timed_phase("pdf_render")
 def export_pdf(experience: InterviewExperience, rows: list[dict],
                style: str = "lines", *, hide_on_site_answer: bool = False,
                hide_review_answer: bool = False,

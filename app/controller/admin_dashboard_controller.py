@@ -12,6 +12,15 @@ from app.service.admin_dashboard_service import build_admin_dashboard
 router = APIRouter(prefix="/my-schedule/admin", tags=["admin"])
 
 
+@router.get("/performance")
+def performance_dashboard(request: Request, hours: int = 24):
+    if not request.state.user.is_admin:
+        raise HTTPException(status_code=403, detail="无权访问性能数据")
+    if hours not in {1, 24, 168}:
+        raise HTTPException(status_code=422, detail="时间范围无效")
+    return request.app.state.performance.dashboard(hours)
+
+
 @router.get("", response_class=HTMLResponse)
 def dashboard(request: Request,
               experience_mapper: BaseInterviewExperienceMapper = Depends(get_interview_experience_mapper)):

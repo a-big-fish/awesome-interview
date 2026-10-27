@@ -1,6 +1,7 @@
 ﻿from pathlib import Path
 
 import logging
+from contextlib import asynccontextmanager
 from time import perf_counter
 
 from fastapi import Depends, FastAPI, Request
@@ -9,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.controller import (
     admin_dashboard_controller,
+    performance_controller,
     account_profile_controller,
     ai_interview_controller,
     auth_controller,
@@ -23,8 +25,10 @@ from app.controller import (
 )
 from app.core.auth_guard import AuthRequired, InvalidCsrf, require_current_user
 from app.core.config import Settings, get_settings
+from app.core.performance import RequestTimings, node_for_path, request_timings
 from app.mapper.postgres_auth_mapper import PostgresAuthMapper
 from app.service.auth_service import AuthService
+from app.service.performance_service import PerformanceService
 
 BASE_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
@@ -43,29 +47,56 @@ def create_app(settings: Settings | None = None, auth_service: AuthService | Non
             raise RuntimeError("开放注册前必须配置 SMTP_HOST 和 SMTP_FROM")
         if settings.registration_mode == "invite" and not settings.registration_invite_code:
             raise RuntimeError("邀请码注册必须配置 REGISTRATION_INVITE_CODE")
+    performance = PerformanceService(Path(settings.performance_db_path),
+                                     enabled=public and settings.performance_enabled)
+
+    @asynccontextmanager
+    async def lifespan(_application):
+        performance.start()
+        try:
+            yield
+        finally:
+            performance.stop()
+
     application = FastAPI(
         title="Awesome Interview" if public else "会议日程规划器",
         version="0.1.0",
         docs_url=None if public else "/docs",
         redoc_url=None if public else "/redoc",
         openapi_url=None if public else "/openapi.json",
+        lifespan=lifespan,
     )
     application.state.settings = settings
+    application.state.performance = performance
     application.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
     @application.middleware("http")
     async def measure_personal_requests(request: Request, call_next):
-        if not request.url.path.startswith("/my-schedule"):
+        node = node_for_path(request.url.path, request.method)
+        if node is None:
             return await call_next(request)
         started = perf_counter()
-        response = await call_next(request)
-        elapsed_ms = (perf_counter() - started) * 1000
-        metric = "experience" if request.url.path.startswith("/my-schedule/experiences") else "personal"
-        response.headers["Server-Timing"] = f"{metric};dur={elapsed_ms:.1f}"
-        if elapsed_ms >= 500:
-            logger.warning("Slow personal request path=%s method=%s status=%s duration_ms=%.1f",
-                           request.url.path, request.method, response.status_code, elapsed_ms)
-        return response
+        timings = RequestTimings()
+        token = request_timings.set(timings)
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            elapsed_ms = (perf_counter() - started) * 1000
+            legacy_metric = "experience" if request.url.path.startswith("/my-schedule/experiences") else "personal"
+            response.headers["Server-Timing"] = ", ".join(
+                [f"app;dur={elapsed_ms:.1f}", f"{legacy_metric};dur={elapsed_ms:.1f}"] +
+                [f"{name};dur={duration:.1f}" for name, duration in timings.values.items()])
+            return response
+        finally:
+            elapsed_ms = (perf_counter() - started) * 1000
+            performance.record(node, "server", "request", elapsed_ms, status)
+            for name, duration in timings.values.items():
+                performance.record(node, "server", name, duration, status)
+            request_timings.reset(token)
+            if elapsed_ms >= 500:
+                logger.warning("Slow request node=%s method=%s status=%s duration_ms=%.1f",
+                               node, request.method, status, elapsed_ms)
     if public:
         application.state.auth_service = auth_service or AuthService(PostgresAuthMapper(settings), settings)
 
@@ -100,6 +131,8 @@ def create_app(settings: Settings | None = None, auth_service: AuthService | Non
         application.include_router(mobile_api_controller.router,
                                    dependencies=[Depends(require_current_user)])
         application.include_router(admin_dashboard_controller.router,
+                                   dependencies=[Depends(require_current_user)])
+        application.include_router(performance_controller.router,
                                    dependencies=[Depends(require_current_user)])
     else:
         application.include_router(page_controller.router)

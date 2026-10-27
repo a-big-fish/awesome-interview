@@ -8,7 +8,7 @@
     <div>
       <p class="admin-context">站点概况</p>
       <h1>数据看板</h1>
-      <p>基于现有账号与面经记录汇总。图表按北京时间统计，不新增行为埋点。</p>
+      <p>账号与面经数量汇总，以及匿名技术性能指标。图表按北京时间统计。</p>
     </div>
     <span class="admin-asof">截至 {{ stats.today.strftime('%Y-%m-%d') }}</span>
   </header>
@@ -48,5 +48,23 @@
       <div class="admin-visibility-rows"><div><span><i class="admin-dot public"></i>公开</span><strong>{{ stats.total_public }}</strong></div><div><span><i class="admin-dot private"></i>私密</span><strong>{{ stats.total_private }}</strong></div></div>
     </section>
   </div>
+  <section class="admin-panel admin-performance" data-performance-dashboard>
+    <div class="admin-panel-heading">
+      <div><p class="admin-context">访问性能</p><h2>主要节点耗时</h2><p>后台异步收集。浏览器请求计至响应头，服务端计至响应准备完成；两者分别统计。</p></div>
+      <div class="admin-performance-controls"><label>时间范围 <select data-performance-range><option value="1">最近 1 小时</option><option value="24" selected>最近 24 小时</option><option value="168">最近 7 天</option></select></label><button type="button" class="btn secondary" data-performance-refresh>刷新</button></div>
+    </div>
+    <p class="admin-performance-status" role="status" data-performance-status>正在读取性能样本…</p>
+    <div class="admin-totals admin-performance-totals" data-performance-totals></div>
+    <div class="admin-performance-grid">
+      <section><h3>节点 P95 对比</h3><p>95% 的样本耗时不高于该值；样本较少时请结合数量判断。</p><div data-performance-nodes></div></section>
+      <section><h3>请求 P95 趋势</h3><p>按接收时间分为 24 段。青色为服务端，蓝色为浏览器。</p><div data-performance-trend></div></section>
+    </div>
+    <h3>请求分布</h3><p>包含页面预加载发出的请求；缓存页面的呈现耗时在下方单独列出。</p><div class="admin-performance-table" data-performance-requests></div>
+    <h3>服务端主要阶段</h3><p>包含鉴权、数据库连接/执行、文本与 PDF 解析及导出生成。阶段之间可能嵌套，不应直接相加。</p><div class="admin-performance-table" data-performance-phases></div>
+    <h3>页面加载与主线程</h3><p>正常整页导航采集 TTFB、加载和 LCP；主线程仅记录 ≥200ms 长任务。未出现的指标表示尚未采集到。</p><div class="admin-performance-table" data-performance-page></div>
+    <h3>慢请求与主要延迟样本</h3><p>请求/阶段 ≥1000ms、LCP ≥2500ms、长任务 ≥200ms，另包含失败请求；最多显示耗时最高的 30 条。</p><div class="admin-performance-table" data-performance-slow></div>
+    <p class="admin-performance-footnote">不保存账号、IP、页面正文、查询参数或资源 ID。样本保留 7 天，最多 100000 条。页面可见时每分钟更新，也可手动刷新。</p>
+  </section>
 </div>
 {% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ asset_url('js/admin_performance.js') }}" defer></script>{% endblock %}

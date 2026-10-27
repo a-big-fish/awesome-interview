@@ -169,13 +169,12 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
         if selected_view == "month":
             for offset in range(0, len(period_dates), 7):
                 week = period_dates[offset:offset + 7]
-                lanes = min(3, max((item["month_lane"] + 1 for day in week
-                                    for item in events_by_day[day]), default=0))
+                lanes = max((item["month_lane"] + 1 for day in week
+                             for item in events_by_day[day]), default=0)
                 month_week_lanes.update(dict.fromkeys(week, lanes))
         calendar_days = [{
             "date": day,
             "entries": events_by_day.get(day, []),
-            "overflow_count": sum(item["month_lane"] >= 3 for item in events_by_day.get(day, [])),
             "month_lane_count": month_week_lanes.get(day, 0),
             "week_segments": _week_day_segments(event_views, day) if selected_view == "week" else [],
             "in_month": day.month == selected_date.month,

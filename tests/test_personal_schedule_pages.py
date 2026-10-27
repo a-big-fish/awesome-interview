@@ -231,6 +231,38 @@ def test_month_calendar_keeps_multiday_tasks_continuous_across_weeks_and_months(
         app.dependency_overrides.pop(get_personal_schedule_service, None)
 
 
+def test_month_calendar_shows_later_lanes_even_when_earlier_tasks_have_ended():
+    zone = ZoneInfo("Asia/Shanghai")
+    service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())
+    for index in range(4):
+        service.create_manual(
+            title=f"周内任务 {index}", event_type="personal", confirm_overlap=True,
+            start_at=datetime(2026, 10, 26, 9, tzinfo=zone),
+            end_at=datetime(2026, 10, 31, 0, tzinfo=zone),
+        )
+    continuing = service.create_manual(
+        title="周末仍持续的任务", event_type="personal", confirm_overlap=True,
+        start_at=datetime(2026, 10, 27, 9, tzinfo=zone),
+        end_at=datetime(2026, 11, 6, 18, tzinfo=zone),
+    )
+    context = _dashboard_context(service, date(2026, 10, 1), "month")
+    days = {day["date"]: day for day in context["calendar_days"]}
+    for day in (date(2026, 10, 31), date(2026, 11, 1)):
+        assert len(days[day]["entries"]) == 1
+        assert days[day]["entries"][0]["month_lane"] == 4
+        assert days[day]["month_lane_count"] == 5
+    app.dependency_overrides[get_personal_schedule_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            page = client.get("/my-schedule?view=month&date_value=2026-10-01")
+        assert page.status_code == 200
+        assert f'style="grid-row: 5;" href="/my-schedule/events/{continuing.id}"' in page.text
+        assert 'grid-template-rows: repeat(5, 20px)' in page.text
+        assert "另有 " not in page.text
+    finally:
+        app.dependency_overrides.pop(get_personal_schedule_service, None)
+
+
 def test_week_timeline_splits_overnight_events_at_day_and_week_boundaries():
     zone = ZoneInfo("Asia/Shanghai")
     service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())

@@ -853,6 +853,24 @@ body.personal-navigation-loading .page-header::after { content: ''; position: ab
 .personal-upcoming { display: flex; flex-direction: column; gap: 10px; }
 .personal-upcoming-item { display: grid; gap: 4px; }
 .personal-upcoming-item span { font-size: 12px; color: var(--muted); }
+.personal-side-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.personal-side-heading h2 { margin: 0; }
+.personal-side-heading a { color: var(--primary); font-size: 13px; white-space: nowrap; }
+.personal-upcoming-section, .personal-completed-section { min-height: 0; }
+.personal-upcoming-section { display: flex; flex-direction: column; gap: 12px; }
+.personal-completed-section summary { cursor: pointer; font-size: 18px; font-weight: 700; }
+.personal-completed-section summary span { color: var(--muted); font-size: 13px; }
+.personal-completed-section[open] { display: flex; flex-direction: column; gap: 12px; }
+.personal-side-list { display: grid; align-content: start; gap: 8px; min-height: 0; max-height: calc(7 * 68px + 6 * 8px); overflow-y: auto; }
+.personal-side-list > .muted-text { margin: 0; }
+.personal-side-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 8px; min-height: 68px; }
+.personal-side-row .personal-upcoming-item { min-width: 0; padding: 10px 12px; }
+.personal-side-row .personal-upcoming-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-side-row form { display: flex; align-items: stretch; }
+.personal-side-action { min-width: 54px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px; background: #fff; color: var(--primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.personal-side-action:hover { border-color: var(--primary); background: var(--primary-soft); }
+.personal-workspace-link { margin-top: auto; }
+.event-card.is-completed, .personal-event-card.is-completed, .personal-week-event.is-completed, .personal-period-event.is-completed, .personal-side-row.is-completed .personal-upcoming-item { filter: grayscale(1); opacity: .62; }
 .personal-form-page { max-width: 900px; margin: 0 auto; }
 .personal-invitation-form, .personal-event-form { display: grid; gap: 14px; margin-top: 20px; }
 .personal-type-selection { display: grid; gap: 6px; margin-top: 20px; }
@@ -2343,9 +2361,10 @@ body.page-wide.personal-scroll-page .page main {
     overflow-y: auto;
   }
 
-  .personal-dashboard-page .personal-upcoming {
-    overflow-y: auto;
-  }
+  .personal-dashboard-page .personal-upcoming { overflow: hidden; }
+  .personal-dashboard-page .personal-upcoming-section { flex: 0 1 60%; max-height: 60%; }
+  .personal-dashboard-page .personal-completed-section[open] { flex: 0 1 40%; max-height: 40%; }
+  .personal-dashboard-page .personal-side-list { overflow-y: auto; }
 }
 
 .my-interview-layout {

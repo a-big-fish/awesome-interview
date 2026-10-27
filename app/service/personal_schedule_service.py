@@ -157,6 +157,18 @@ class PersonalScheduleService:
     def delete_event(self, event_id: str) -> bool:
         return self.mapper.delete(event_id, self.owner_id)
 
+    def set_event_completed(self, event_id: str, completed: bool) -> PersonalEvent:
+        """Mark an owned event complete or restore it without changing its schedule."""
+        event = self.get_event(event_id)
+        if event is None:
+            raise LookupError("日程不存在")
+        if (event.completed_at is not None) == completed:
+            return event
+        now = datetime.now(ZoneInfo("Asia/Shanghai"))
+        event.completed_at = now if completed else None
+        event.updated_at = now
+        return self.mapper.save(event)
+
     def migrate_legacy_entry(self, entry: MeetingEntry) -> PersonalEvent:
         """Map a 1.0 personal entry while preserving its identifier and resume link."""
         if entry.source != "personal":

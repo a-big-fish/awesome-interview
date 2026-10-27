@@ -98,6 +98,74 @@ def test_personal_calendar_has_live_time_line_and_hides_it_on_other_dates():
     assert 'class="personal-event-list"' in previous.text
 
 
+def test_dashboard_completion_moves_events_and_grays_calendar_views():
+    zone = ZoneInfo("Asia/Shanghai")
+    today = datetime.now(zone).date()
+    service = PersonalScheduleService(MemoryPersonalEventMapper(), MemoryMyResumeMapper())
+    today_event = service.create_manual(
+        title="整理简历", event_type="personal",
+        start_at=datetime.combine(today, datetime.min.time(), zone) + timedelta(hours=9),
+        end_at=datetime.combine(today, datetime.min.time(), zone) + timedelta(hours=10),
+    )
+    tomorrow = today + timedelta(days=1)
+    service.create_manual(
+        title="准备面试", event_type="personal",
+        start_at=datetime.combine(tomorrow, datetime.min.time(), zone) + timedelta(hours=9),
+        end_at=datetime.combine(tomorrow, datetime.min.time(), zone) + timedelta(hours=10),
+    )
+    app.dependency_overrides[get_personal_schedule_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            current = client.get("/my-schedule")
+            assert "整理简历" in current.text
+            assert "显示更多" in current.text
+            assert 'class="personal-completed-section"' in current.text
+            expanded = client.get("/my-schedule?show_all=1")
+            assert "准备面试" in expanded.text
+
+            completed = client.post(f"/my-schedule/events/{today_event.id}/completion", data={
+                "completed": "true", "view": "day", "date_value": today.isoformat(),
+            }, follow_redirects=False)
+            assert completed.status_code == 303
+            assert service.get_event(today_event.id).completed_at is not None
+            day = client.get("/my-schedule")
+            assert 'class="personal-completed-section" open' in day.text
+            assert "恢复" in day.text
+            assert 'event-card type-personal is-completed' in day.text
+            assert 'class="personal-side-row is-completed"' in day.text
+            week = client.get("/my-schedule?view=week")
+            month = client.get("/my-schedule?view=month")
+            assert 'personal-week-event type-personal is-completed' in week.text
+            assert 'personal-period-event type-personal is-completed' in month.text
+
+            restored = client.post(f"/my-schedule/events/{today_event.id}/completion", data={
+                "completed": "false", "view": "day", "date_value": today.isoformat(),
+            }, follow_redirects=False)
+            assert restored.status_code == 303
+            assert service.get_event(today_event.id).completed_at is None
+            assert 'class="personal-completed-section"' in client.get("/my-schedule").text
+    finally:
+        app.dependency_overrides.pop(get_personal_schedule_service, None)
+
+
+def test_completion_cannot_change_another_users_event():
+    mapper = MemoryPersonalEventMapper()
+    owner = PersonalScheduleService(mapper, MemoryMyResumeMapper(), owner_id="owner")
+    other = PersonalScheduleService(mapper, MemoryMyResumeMapper(), owner_id="other")
+    event = owner.create_manual(
+        title="私人任务", event_type="personal",
+        start_at=datetime(2026, 10, 27, 9, tzinfo=ZoneInfo("Asia/Shanghai")),
+        end_at=datetime(2026, 10, 27, 10, tzinfo=ZoneInfo("Asia/Shanghai")),
+    )
+    try:
+        other.set_event_completed(event.id, True)
+    except LookupError:
+        pass
+    else:
+        raise AssertionError("其他用户不应能修改该日程")
+    assert owner.get_event(event.id).completed_at is None
+
+
 def test_personal_calendar_week_and_month_views_keep_period_navigation():
     profile = MemoryMyResumeMapper()
     service = PersonalScheduleService(MemoryPersonalEventMapper(), profile)

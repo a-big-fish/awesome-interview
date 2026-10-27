@@ -40,6 +40,7 @@ def _event_view(event: PersonalEvent, now: datetime) -> dict[str, Any]:
         **event.model_dump(mode="json"),
         "start_time": start,
         "end_time": end,
+        "completed_time": event.completed_at.astimezone(DISPLAY_ZONE) if event.completed_at else None,
         "start_minutes": start.hour * 60 + start.minute,
         "duration_minutes": int((end - start).total_seconds() // 60),
         "status": status,
@@ -86,7 +87,16 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
     start_hour = min(6, earliest)
     end_hour = max(23, latest)
     now_minutes = now.hour * 60 + now.minute
-    upcoming = [item for item in event_views if item["end_time"] > now]
+    today_start = datetime.combine(now.date(), datetime.min.time(), DISPLAY_ZONE)
+    tomorrow_start = today_start + timedelta(days=1)
+    remaining = [item for item in event_views
+                 if not item["completed_at"] and item["end_time"] > today_start]
+    upcoming_today = [item for item in remaining if item["start_time"] < tomorrow_start]
+    completed_today = sorted(
+        (item for item in event_views if item["completed_time"] and
+         item["completed_time"].date() == now.date()),
+        key=lambda item: item["completed_time"], reverse=True,
+    )
     selected_view = selected_view if selected_view in {"day", "week", "month"} else "day"
     calendar_days: list[dict[str, Any]] = []
     week_bridges: list[int] = []
@@ -142,7 +152,9 @@ def _dashboard_context(service: PersonalScheduleService, selected_date: date,
         "prev_date": prev_date.isoformat(),
         "next_date": next_date.isoformat(),
         "entries": views,
-        "upcoming": upcoming[:10],
+        "upcoming_today": upcoming_today,
+        "upcoming_all": remaining,
+        "completed_today": completed_today,
         "time_labels": [f"{hour:02d}:00" for hour in range(start_hour, end_hour + 1)],
         "start_hour": start_hour,
         "end_hour": end_hour,
@@ -174,13 +186,41 @@ def personal_dashboard(
     request: Request,
     date_value: str | None = None,
     view: str = "day",
+    show_all: bool = False,
     service: PersonalScheduleService = Depends(get_personal_schedule_service),
 ):
     try:
         selected = date.fromisoformat(date_value) if date_value else datetime.now(DISPLAY_ZONE).date()
     except ValueError:
         selected = datetime.now(DISPLAY_ZONE).date()
-    return templates.TemplateResponse(request, "personal_dashboard.html", _dashboard_context(service, selected, view))
+    context = _dashboard_context(service, selected, view)
+    context["show_all"] = show_all
+    return templates.TemplateResponse(request, "personal_dashboard.html", context)
+
+
+@router.post("/events/{event_id}/completion")
+async def set_personal_event_completion(
+    event_id: str, request: Request,
+    service: PersonalScheduleService = Depends(get_personal_schedule_service),
+):
+    form = await request.form()
+    completed = str(form.get("completed", ""))
+    if completed not in {"true", "false"}:
+        raise HTTPException(status_code=422, detail="完成状态无效")
+    try:
+        service.set_event_completed(event_id, completed == "true")
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="日程不存在") from exc
+    view = str(form.get("view", "day"))
+    view = view if view in {"day", "week", "month"} else "day"
+    try:
+        selected = date.fromisoformat(str(form.get("date_value", "")))
+    except ValueError:
+        selected = datetime.now(DISPLAY_ZONE).date()
+    show_all = "&show_all=1" if str(form.get("show_all", "")) == "1" else ""
+    return RedirectResponse(
+        f"/my-schedule?view={view}&date_value={selected.isoformat()}{show_all}", status_code=303,
+    )
 
 
 @router.get("/new", response_class=HTMLResponse)

@@ -21,6 +21,7 @@ from app.mapper.memory_personal_todo_mapper import MemoryPersonalTodoMapper
 from app.mapper.memory_interview_experience_mapper import MemoryInterviewExperienceMapper
 from app.mapper.memory_resume_mapper import MemoryResumeMapper
 from app.model.auth import AuthUser
+from app.model.personal_event import PersonalEvent
 from app.service.auth_service import AuthService, hash_password
 from app.service.resume_parser_service import ResumeParserService
 
@@ -73,6 +74,29 @@ def _login(client: TestClient, identifier: str, password: str) -> str:
     assert result.status_code == 303
     assert result.headers["location"] == "/my-schedule/experiences/plaza"
     return _csrf(client.get("/my-schedule/new"))
+
+
+def test_event_completion_requires_owner_and_csrf(tmp_path):
+    app, mapper, _, events, _, _ = _public_fixture(tmp_path)
+    alice = AuthUser(email="alice-completion@example.com", password_hash=hash_password("alice-password"), email_verified=True)
+    bob = AuthUser(email="bob-completion@example.com", password_hash=hash_password("bob-password"), email_verified=True)
+    assert mapper.create_user(alice) and mapper.create_user(bob)
+    event = events.save(PersonalEvent(
+        owner_id=alice.id, type="personal", title="仅 Alice 的任务",
+        start_at=datetime(2026, 10, 27, 9, tzinfo=ZoneInfo("Asia/Shanghai")),
+        end_at=datetime(2026, 10, 27, 10, tzinfo=ZoneInfo("Asia/Shanghai")),
+    ))
+    with TestClient(app, base_url="https://testserver") as alice_client, \
+         TestClient(app, base_url="https://testserver") as bob_client:
+        alice_csrf = _login(alice_client, alice.email, "alice-password")
+        bob_csrf = _login(bob_client, bob.email, "bob-password")
+        path = f"/my-schedule/events/{event.id}/completion"
+        assert alice_client.post(path, data={"completed": "true"}).status_code == 403
+        assert bob_client.post(path, data={"csrf_token": bob_csrf, "completed": "true"}).status_code == 404
+        assert events.find_by_id(event.id, alice.id).completed_at is None
+        assert alice_client.post(path, data={"csrf_token": alice_csrf, "completed": "true"},
+                                 follow_redirects=False).status_code == 303
+        assert events.find_by_id(event.id, alice.id).completed_at is not None
 
 
 def test_login_shows_service_unavailable_when_database_connection_fails(tmp_path, monkeypatch):

@@ -35,6 +35,7 @@ class PersonalEvent(BaseModel):
     legacy_entry_id: str | None = None
     attachment_refs: list[str] = Field(default_factory=list)
     reminder_offsets_minutes: list[int] = Field(default_factory=list)
+    completed_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -48,6 +49,8 @@ class PersonalEvent(BaseModel):
         self.end_at = ensure_timezone(self.end_at)
         self.created_at = ensure_timezone(self.created_at)
         self.updated_at = ensure_timezone(self.updated_at)
+        if self.completed_at is not None:
+            self.completed_at = ensure_timezone(self.completed_at)
         if self.end_at <= self.start_at:
             raise ValueError("结束时间必须晚于开始时间")
         if self.type != "interview" and self.resume_id:

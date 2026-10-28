@@ -289,10 +289,11 @@ final class NativeDashboard extends ScrollView {
         cell.addView(number);
         int events = 0;
         for (JSONObject item : events()) {
-            if (!day.equals(eventDate(item))) continue;
+            if (!coversDate(item, day)) continue;
             events++;
             if (weekMode && events <= 2) {
-                TextView label = text(item.optString("title"), 10, Color.WHITE, false);
+                String prefix = completed(item) ? "✓ " : day.equals(eventDate(item)) ? "" : "↖ ";
+                TextView label = text(prefix + item.optString("title"), 10, Color.WHITE, false);
                 label.setSingleLine(true);
                 label.setPadding(dp(2), 0, dp(2), 0);
                 label.setBackground(background(eventColor(item.optString("type")), 3, Color.TRANSPARENT));
@@ -313,7 +314,7 @@ final class NativeDashboard extends ScrollView {
     private void addAgenda(LinearLayout parent, LocalDate day) {
         int count = 0;
         for (JSONObject item : events()) {
-            if (!day.equals(eventDate(item))) continue;
+            if (!coversDate(item, day)) continue;
             count++;
             LinearLayout line = new LinearLayout(getContext());
             line.setGravity(Gravity.CENTER_VERTICAL);
@@ -328,9 +329,17 @@ final class NativeDashboard extends ScrollView {
             LinearLayout words = new LinearLayout(getContext());
             words.setPadding(dp(12), 0, 0, 0);
             words.setOrientation(LinearLayout.VERTICAL);
-            words.addView(text(item.optString("title"), 15, INK, true));
-            String start = item.optString("start_at");
-            words.addView(text(start.length() >= 16 ? start.substring(11, 16) : "查看详情", 12, MUTED, false));
+            TextView title = text((completed(item) ? "✓ " : "") + item.optString("title"), 15,
+                    completed(item) ? MUTED : INK, true);
+            words.addView(title);
+            String when = day.equals(eventDate(item)) ? "" : "从前一天延续";
+            LocalDate last = eventLastDate(item);
+            if (last != null && last.isAfter(day)) when += (when.isEmpty() ? "" : " · ") + "延续到次日";
+            if (when.isEmpty()) {
+                String start = item.optString("start_at");
+                when = start.length() >= 16 ? start.substring(11, 16) : "查看详情";
+            }
+            words.addView(text(when, 12, MUTED, false));
             line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
             line.setOnClickListener(v -> actions.openEvent(item.optString("id")));
             parent.addView(line);
@@ -384,6 +393,23 @@ final class NativeDashboard extends ScrollView {
             String value = item.optString("start_at");
             return value.length() >= 10 ? date(value.substring(0, 10)) : null;
         }
+    }
+
+    private static LocalDate eventLastDate(JSONObject item) {
+        try {
+            return OffsetDateTime.parse(item.optString("end_at")).atZoneSameInstant(ZONE)
+                    .minusNanos(1).toLocalDate();
+        } catch (Exception ignored) { return eventDate(item); }
+    }
+
+    private static boolean coversDate(JSONObject item, LocalDate day) {
+        LocalDate first = eventDate(item);
+        LocalDate last = eventLastDate(item);
+        return first != null && last != null && !day.isBefore(first) && !day.isAfter(last);
+    }
+
+    private static boolean completed(JSONObject item) {
+        return !item.isNull("completed_at") && !item.optString("completed_at").isEmpty();
     }
 
     private static int eventColor(String type) {

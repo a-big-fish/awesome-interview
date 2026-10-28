@@ -326,12 +326,28 @@ public final class MainActivity extends Activity {
     }
 
     private boolean showAcceptanceFixture(String screen) {
-        if ("dashboard-home".equals(screen) || "dashboard-calendar".equals(screen)) {
+        if ("dashboard-home".equals(screen) || "dashboard-calendar".equals(screen) ||
+                "dashboard-next-day".equals(screen)) {
             initialHomePending = false;
             activeTab = "dashboard-home".equals(screen) ? 0 : 1;
             updateNavigation();
-            dashboard.setSnapshot(new JSONObject());
+            try {
+                LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+                String events = "{\"events\":[" +
+                        "{\"id\":\"acceptance-overnight\",\"title\":\"跨天面试准备\"," +
+                        "\"type\":\"personal\",\"start_at\":\"" + today + "T23:00:00+08:00\"," +
+                        "\"end_at\":\"" + today.plusDays(1) + "T01:00:00+08:00\",\"completed_at\":null}," +
+                        "{\"id\":\"acceptance-done\",\"title\":\"已完成的简历检查\"," +
+                        "\"type\":\"personal\",\"start_at\":\"" + today + "T10:00:00+08:00\"," +
+                        "\"end_at\":\"" + today + "T11:00:00+08:00\"," +
+                        "\"completed_at\":\"" + today + "T11:15:00+08:00\"}]}";
+                dashboard.setSnapshot(new JSONObject(events));
+            } catch (Exception error) { return false; }
             showNative("dashboard-calendar".equals(screen));
+            if ("dashboard-next-day".equals(screen)) {
+                dashboard.showCalendar(true);
+                dashboard.selectDate(LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).plusDays(1));
+            }
             return true;
         }
         if ("event-detail".equals(screen)) {

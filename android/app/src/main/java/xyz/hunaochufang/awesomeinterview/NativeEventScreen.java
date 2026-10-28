@@ -263,6 +263,12 @@ final class NativeEventScreen extends ScrollView {
 
     private void renderDetail() {
         addHeading(event.optString("title", "日程详情"));
+        if (!event.isNull("completed_at") && !event.optString("completed_at").isEmpty()) {
+            TextView completed = text("✓ 已完成", 14, true);
+            completed.setTextColor(Color.rgb(0, 122, 127));
+            completed.setPadding(0, 0, 0, dp(12));
+            body.addView(completed);
+        }
         int index = 0;
         for (int i = 0; i < VALUES.length; i++) if (VALUES[i].equals(event.optString("type"))) index = i;
         body.addView(text(TYPES[index] + " · " + displayDate(parseDate(event.optString("start_at"), ZonedDateTime.now(ZONE))) +

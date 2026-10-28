@@ -1,0 +1,18 @@
+{
+  "captured_at_china": "2026-10-28 18:45:44",
+  "app_version": "1.0.0-alpha3",
+  "device": "emulator-5554",
+  "apk": "android/app/build/outputs/apk/debug/app-debug.apk",
+  "data": "本地合成示例；不包含真实用户数据",
+  "screens": [
+    "01-native-event-top.png",
+    "02-native-event-reminders.png",
+    "03-native-export-page-1.png",
+    "04-native-export-page-2.png",
+    "05-native-export-settings.png",
+    "06-native-home-buttons.png",
+    "07-native-calendar-buttons.png",
+    "08-native-event-detail-buttons.png",
+    "09-next-day-overnight-event.png"
+  ]
+}

@@ -1,6 +1,7 @@
 (() => {
   // Private HTML stays in this page's memory; the server sends no-store.
-  const paths = ['/my-schedule', '/my-schedule/experiences/plaza', '/my-schedule/experiences'];
+  const paths = ['/my-schedule', '/my-schedule/experiences/plaza', '/my-schedule/experiences',
+    '/my-schedule/profile', '/my-schedule/interviews'];
   const allowed = new Set(paths);
   if (!document.querySelector('.personal-app .page-nav a[href="/my-schedule/experiences/plaza"]')) return;
   const ttl = 30000;
@@ -20,6 +21,7 @@
       const resolved = new URL(response.url, location.href);
       if (resolved.pathname.startsWith('/auth/login') || response.status === 401) {
         pages.clear();
+        document.dispatchEvent(new Event('awesome-interview:session-expired'));
         location.assign(resolved.pathname.startsWith('/auth/login') ? resolved.href : '/auth/login');
         throw new Error('登录已过期');
       }
@@ -34,11 +36,16 @@
     finally { pending.delete(url); }
   }
 
-  const prefetch = () => {
-    if (document.querySelector('[data-experience-editor]')) return;
-    paths.filter((path) => path !== location.pathname).forEach((path, index) => {
-      setTimeout(() => { load(path).catch(() => {}); }, 250 + index * 500);
-    });
+  let prefetching = false;
+  const prefetch = async () => {
+    if (prefetching || document.querySelector('[data-experience-editor]')) return;
+    prefetching = true;
+    try {
+      for (const path of paths) {
+        if (document.hidden || document.querySelector('[data-experience-editor]')) break;
+        if (path !== location.pathname) await load(path).catch(() => {});
+      }
+    } finally { prefetching = false; }
   };
 
   const setNavState = (page) => {
@@ -75,7 +82,8 @@
       return;
     }
     const id = ++navigationId;
-    const cached = pages.get(target.pathname)?.html;
+    const stored = pages.get(target.pathname);
+    const cached = stored?.html;
     if (cached) {
       try {
         if (addHistory) history.pushState({ personalPage: true }, '', target.pathname);
@@ -84,6 +92,7 @@
         location.assign(target.href);
         return;
       }
+      if (Date.now() - stored.time < ttl) return;
       // The cached page is visible before this request completes.
       load(target.pathname, true).then((html) => {
         if (id !== navigationId || location.pathname !== target.pathname || pageEdited || html === cached)

@@ -12,6 +12,7 @@ import pymupdf as fitz
 from fastapi import UploadFile
 
 from app.core.exceptions import ResumeFileNotFoundError, ResumeParseError
+from app.core.performance import measure_phase
 from app.mapper.base_resume_file_storage import ResumeFileStorage
 from app.mapper.base_resume_mapper import BaseResumeMapper
 from app.mapper.local_resume_file_storage import LocalResumeFileStorage
@@ -298,13 +299,14 @@ class ResumeParserService:
     def get_resume(self, resume_id: str) -> Resume | None:
         return self.resume_mapper.find_by_id(resume_id)
 
-    def read_pdf(self, resume_id: str) -> bytes:
+    def read_pdf(self, resume_id: str, *, owned_resume: Resume | None = None) -> bytes:
         """Read the stored PDF for a resume through the storage boundary."""
-        resume = self.get_resume(resume_id)
-        if not resume:
+        resume = owned_resume or self.get_resume(resume_id)
+        if not resume or resume.id != resume_id:
             raise ResumeFileNotFoundError(resume_id)
         try:
-            return self.file_storage.read_pdf(resume.pdf_path)
+            with measure_phase("resume_storage"):
+                return self.file_storage.read_pdf(resume.pdf_path)
         except FileNotFoundError as exc:
             raise ResumeFileNotFoundError(resume.pdf_path) from exc
 

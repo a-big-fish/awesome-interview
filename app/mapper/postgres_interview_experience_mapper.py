@@ -97,6 +97,25 @@ class PostgresInterviewExperienceMapper(BaseInterviewExperienceMapper):
             ).fetchall()
         return {row["day"]: (row["public_count"], row["private_count"]) for row in rows}
 
+    def list_owned_summaries(self, owner_id: str) -> list[dict]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT e.payload - 'raw_text_draft' - 'feeling' AS payload, "
+                "(SELECT COUNT(*) FROM personal_interview_questions q WHERE q.experience_id=e.id) "
+                "AS question_count FROM personal_interview_experiences e WHERE e.owner_id=%s "
+                "ORDER BY e.updated_at DESC, e.id DESC", (owner_id,),
+            ).fetchall()
+        return [{"experience": InterviewExperience.model_validate(row["payload"]),
+                 "question_count": row["question_count"]} for row in rows]
+
+    def list_event_experiences(self, owner_id: str, event_id: str) -> list[InterviewExperience]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM personal_interview_experiences WHERE owner_id=%s "
+                "AND linked_event_id=%s ORDER BY updated_at DESC, id DESC", (owner_id, event_id),
+            ).fetchall()
+        return [InterviewExperience.model_validate(row["payload"]) for row in rows]
+
     def list_public_experiences(self) -> list[InterviewExperience]:
         with self._connect() as connection:
             rows = connection.execute(

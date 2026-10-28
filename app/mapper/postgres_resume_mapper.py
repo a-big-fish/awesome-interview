@@ -115,6 +115,14 @@ class PostgresResumeMapper(BaseResumeMapper):
                 row = cursor.fetchone()
         return self._to_model(row) if row else None
 
+    def find_summary(self, resume_id: str) -> Resume | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id, owner_id, file_name, pdf_path, page_count, created_at "
+                "FROM interview_resumes WHERE id=%s", (resume_id,),
+            ).fetchone()
+        return self._to_model(row) if row else None
+
     @staticmethod
     def _to_model(row: DictRow) -> Resume:
         data = dict(row)

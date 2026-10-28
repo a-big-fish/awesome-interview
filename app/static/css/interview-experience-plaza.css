@@ -73,3 +73,9 @@
 @media(max-width:1000px){.interview-questions-panel.is-parsing{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(300px,1fr) minmax(260px,1fr);overflow-y:auto}.interview-questions-panel.is-parsing>.interview-questions-header{grid-column:1;grid-row:1}.experience-parser-pane{grid-column:1;grid-row:2}.experience-parser-preview{grid-column:1;grid-row:3;border-left:0;border-top:1px solid #dce5f2}}
 
 .experience-plaza-loader{text-align:center;padding:20px;color:#64748b}.experience-plaza-loader .btn{display:inline-flex;min-height:44px;align-items:center}.experience-plaza-loader [aria-disabled=true]{opacity:.6;pointer-events:none}
+
+.resume-panel-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px}.resume-panel-toolbar h2{font-size:16px;margin:0}.resume-cache-status{font-size:12px;color:#64748b;margin:8px 0}.resume-cache-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.my-resume-panel [hidden]{display:none!important}.my-resume-panel .resume-replace-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.my-resume-panel.is-resume-dragging{outline:2px dashed #365af5}
+
+.my-resume-panel[data-resume-cache]{flex-direction:column;justify-content:flex-start;gap:4px}.my-resume-panel[data-resume-cache] .own-resume-a4{flex:1 1 auto;width:100%;height:auto;min-height:320px}.my-resume-panel[data-resume-cache] .resume-panel-error{position:static}.resume-panel-toolbar,.resume-cache-status,.resume-cache-name,.resume-replace-form{flex-shrink:0}@media(max-width:1000px){.my-resume-panel[data-resume-cache] .own-resume-a4{flex:none;height:65vh;min-height:360px}}
+
+.my-resume-panel[data-resume-cache] .resume-replace-form{position:static;top:auto;right:auto;left:auto}.my-resume-panel[data-resume-cache] .resume-panel-toolbar{min-height:36px}

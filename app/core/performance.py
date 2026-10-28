@@ -17,6 +17,7 @@ NODE_LABELS = {
     "parse": "面经文本/文件解析", "pdf": "PDF 导出", "markdown": "Markdown 导出",
     "export": "导出预览", "interviews": "面试工作台", "profile": "个人设置",
     "login": "登录", "register": "注册", "mobile": "客户端同步/API",
+    "resume_state": "当前简历状态", "resume_file": "简历文件",
 }
 METRIC_LABELS = {
     "request": "请求", "auth": "会话鉴权", "db_connect": "数据库连接",
@@ -24,6 +25,7 @@ METRIC_LABELS = {
     "db_query": "数据库执行/提交", "ttfb": "首字节 TTFB", "load": "页面加载",
     "lcp": "最大内容绘制 LCP", "longtask": "主线程长任务", "cache_render": "缓存页面呈现",
     "parse_text": "文本规则解析", "parse_markdown": "Markdown 结构解析",
+    "resume_storage": "简历文件存储读取",
     "pdf_extract": "PDF 文本提取", "pdf_render": "PDF 排版生成", "markdown_render": "Markdown 导出生成",
 }
 CLIENT_METRICS = {"request", "ttfb", "load", "lcp", "longtask", "cache_render"}
@@ -38,9 +40,13 @@ def node_for_path(path: str, method: str = "GET") -> str | None:
         return "register"
     if path.startswith("/api/mobile/v1/"):
         return "mobile"
+    if path.startswith("/resumes/") and path.endswith(("/pdf", "/download")):
+        return "resume_file"
     if not path.startswith("/my-schedule"):
         return None
     tail = path[len("/my-schedule"):]
+    if tail == "/resume/current":
+        return "resume_state"
     if tail.startswith(("/admin", "/telemetry")):
         return None
     if tail in {"", "/new"}:

@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.core.dependencies import (
     get_interview_experience_mapper, get_my_resume_mapper, get_personal_event_mapper,
-    get_resume_parser_service, get_personal_todo_mapper,
+    get_resume_parser_service, get_personal_todo_mapper, get_resume_mapper,
 )
 from app.main import create_app
 from app.mapper.memory_auth_mapper import MemoryAuthMapper
@@ -58,6 +58,7 @@ def _public_fixture(tmp_path, *, email_verification_required=True, registration_
     app.dependency_overrides[get_interview_experience_mapper] = lambda: experience_mapper
     app.dependency_overrides[get_my_resume_mapper] = lambda: profiles
     app.dependency_overrides[get_resume_parser_service] = lambda: parser
+    app.dependency_overrides[get_resume_mapper] = lambda: resumes
     return app, mapper, mailer, events, profiles, resumes
 
 

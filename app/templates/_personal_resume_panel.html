@@ -1,0 +1,16 @@
+<aside class="card my-resume-panel" aria-label="我的简历" data-resume-cache data-cache-scope="{{ resume_cache_scope }}">
+  {% if resume_error %}<div class="resume-panel-error" role="alert">{{ resume_error }}</div>{% endif %}
+  <div class="resume-panel-toolbar"><h2>我的简历</h2><button type="button" class="btn secondary small" data-resume-sync>同步简历</button></div>
+  <p class="resume-cache-status" data-resume-status role="status" aria-live="polite">正在读取简历…</p>
+  <p class="resume-cache-name" data-resume-name></p>
+  <form action="/my-schedule/resume" method="post" enctype="multipart/form-data" data-cached-resume-upload class="resume-replace-form">
+    {% if request.app.state.settings.app_mode == 'public_personal' %}<input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">{% endif %}
+    <input type="file" accept=".pdf,application/pdf" name="resume" data-resume-file hidden>
+    <button class="btn secondary small" type="button" data-resume-choose>上传／更换简历</button>
+    <a class="btn secondary small" data-resume-open target="_blank" rel="noopener" hidden>打开 PDF</a>
+  </form>
+  <div class="own-resume-a4" data-resume-viewer hidden><iframe class="own-resume-frame" title="我的简历 PDF 原件" data-resume-frame></iframe></div>
+  <p class="resume-cache-status" data-resume-fallback hidden>此浏览器不支持内嵌 PDF，请点击“打开 PDF”查看原件。</p>
+  <div class="own-resume-upload" data-resume-empty><p>可选择或拖入本地 PDF 简历，最大 20 MB。</p></div>
+  <noscript><p>请启用 JavaScript 以加载和同步简历。</p></noscript>
+</aside>

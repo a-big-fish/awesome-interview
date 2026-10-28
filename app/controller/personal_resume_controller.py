@@ -14,8 +14,8 @@ from app.service.resume_parser_service import ResumeParserService
 router = APIRouter(prefix="/resumes", tags=["personal-resumes"])
 
 
-def _owned_resume(request: Request, resume_id: str, service: ResumeParserService) -> Resume:
-    resume = service.get_resume(resume_id)
+def _owned_resume(request: Request, resume_id: str, service: ResumeParserService, summary: bool = False) -> Resume:
+    resume = service.resume_mapper.find_summary(resume_id) if summary else service.get_resume(resume_id)
     if not resume or resume.owner_id != request.state.user.id:
         raise HTTPException(status_code=404, detail="简历不存在")
     return resume
@@ -24,9 +24,9 @@ def _owned_resume(request: Request, resume_id: str, service: ResumeParserService
 @router.get("/{resume_id}/pdf")
 def pdf(request: Request, resume_id: str,
         service: ResumeParserService = Depends(get_resume_parser_service)) -> Response:
-    _owned_resume(request, resume_id, service)
+    resume = _owned_resume(request, resume_id, service, summary=True)
     try:
-        content = service.read_pdf(resume_id)
+        content = service.read_pdf(resume_id, owned_resume=resume)
     except ResumeFileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="简历不存在") from exc
     return Response(content=content, media_type="application/pdf", headers={"Cache-Control": "no-store"})
@@ -46,9 +46,9 @@ def image(request: Request, resume_id: str, image_id: str,
 @router.get("/{resume_id}/download")
 def download(request: Request, resume_id: str,
              service: ResumeParserService = Depends(get_resume_parser_service)) -> Response:
-    resume = _owned_resume(request, resume_id, service)
+    resume = _owned_resume(request, resume_id, service, summary=True)
     try:
-        content = service.read_pdf(resume_id)
+        content = service.read_pdf(resume_id, owned_resume=resume)
     except ResumeFileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="简历不存在") from exc
     return Response(content=content, media_type="application/pdf", headers={

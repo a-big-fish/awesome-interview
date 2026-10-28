@@ -16,6 +16,14 @@ class BaseInterviewExperienceMapper(ABC):
     @abstractmethod
     def list_experiences(self, owner_id: str) -> list[InterviewExperience]: ...
 
+    def list_owned_summaries(self, owner_id: str) -> list[dict]:
+        counts = self.count_questions_by_experience(owner_id)
+        return [{"experience": item.model_copy(update={"raw_text_draft": "", "feeling": None}),
+                 "question_count": counts.get(item.id, 0)} for item in self.list_experiences(owner_id)]
+
+    def list_event_experiences(self, owner_id: str, event_id: str) -> list[InterviewExperience]:
+        return [item for item in self.list_experiences(owner_id) if item.linked_event_id == event_id]
+
     @abstractmethod
     def experience_counts_by_day(self) -> dict[date, tuple[int, int]]: ...
 

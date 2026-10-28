@@ -6,7 +6,7 @@
   const metrics = new Set(['request', 'ttfb', 'load', 'lcp', 'longtask', 'cache_render']);
   const nodes = new Set(['calendar', 'event', 'event_write', 'event_parse', 'plaza', 'experiences',
     'editor', 'draft', 'experience_write', 'parse', 'pdf', 'markdown', 'export', 'interviews',
-    'profile', 'login', 'register', 'mobile']);
+    'profile', 'login', 'register', 'mobile', 'resume_state', 'resume_file']);
   const nodeFor = (value, method = 'GET') => {
     try {
       const url = new URL(value, location.href);
@@ -15,8 +15,10 @@
       if (path === '/auth/login') return 'login';
       if (path === '/auth/register') return 'register';
       if (path.startsWith('/api/mobile/v1/')) return 'mobile';
+      if (path.startsWith('/resumes/') && /\/(pdf|download)$/.test(path)) return 'resume_file';
       if (!path.startsWith('/my-schedule')) return null;
       const tail = path.slice('/my-schedule'.length);
+      if (tail === '/resume/current') return 'resume_state';
       if (tail.startsWith('/admin') || tail.startsWith('/telemetry')) return null;
       if (tail === '' || tail === '/new') return 'calendar';
       if (tail === '/parse') return 'event_parse';

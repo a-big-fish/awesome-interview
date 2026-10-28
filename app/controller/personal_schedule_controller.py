@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 from typing import Any
+from hashlib import sha256
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
@@ -9,7 +10,7 @@ from pydantic import ValidationError
 from app.controller.page_controller import WEEKDAY_NAMES, _assign_entry_columns, templates
 from app.core.dependencies import (
     get_interview_experience_service, get_my_resume_mapper,
-    get_personal_schedule_service, get_resume_parser_service,
+    get_personal_schedule_service, get_resume_parser_service, get_personal_resume_state_service,
 )
 from app.core.exceptions import MeetingParseError, PersonalEventConflictWarning, ResumeParseError
 from app.mapper.base_my_resume_mapper import BaseMyResumeMapper
@@ -19,6 +20,7 @@ from app.service.personal_schedule_service import PersonalScheduleService
 from app.service.interview_experience_service import InterviewExperienceService
 from app.model.interview_experience import CATEGORY_LABELS
 from app.service.resume_parser_service import ResumeParserService
+from app.service.personal_resume_service import PersonalResumeStateService
 
 router = APIRouter(prefix="/my-schedule", tags=["personal-schedule"])
 DISPLAY_ZONE = ZoneInfo("Asia/Shanghai")
@@ -106,9 +108,9 @@ def _month_day_entries(events: list[dict[str, Any]], dates: list[date]) -> dict[
 
 
 def _dashboard_context(service: PersonalScheduleService, selected_date: date,
-                       selected_view: str = "day") -> dict[str, Any]:
+                       selected_view: str = "day", events: list[PersonalEvent] | None = None) -> dict[str, Any]:
     now = datetime.now(DISPLAY_ZONE)
-    all_events = service.list_events()
+    all_events = service.list_events() if events is None else events
     event_views = [_event_view(item, now) for item in all_events]
     views = _week_day_segments(event_views, selected_date)
     earliest = min((item["start_minutes"] // 60 for item in views), default=6)
@@ -423,14 +425,13 @@ def delete_personal_event(
 def personal_interview_workspace(
     request: Request, date_value: str | None = None,
     service: PersonalScheduleService = Depends(get_personal_schedule_service),
-    profile_mapper: BaseMyResumeMapper = Depends(get_my_resume_mapper),
-    resume_service: ResumeParserService = Depends(get_resume_parser_service),
 ):
     try:
         selected = date.fromisoformat(date_value) if date_value else datetime.now(DISPLAY_ZONE).date()
     except ValueError:
         selected = datetime.now(DISPLAY_ZONE).date()
-    context = _interview_workspace_context(service, selected, profile_mapper, resume_service)
+    context = _interview_workspace_context(service, selected)
+    context["resume_cache_scope"] = _resume_cache_scope(request)
     return templates.TemplateResponse(request, "personal_interviews.html", context)
 
 
@@ -442,8 +443,6 @@ def personal_interview_questions(
     saved: int = 0,
     service: PersonalScheduleService = Depends(get_personal_schedule_service),
     experience_service: InterviewExperienceService = Depends(get_interview_experience_service),
-    profile_mapper: BaseMyResumeMapper = Depends(get_my_resume_mapper),
-    resume_service: ResumeParserService = Depends(get_resume_parser_service),
 ):
     """Show the selected interview beside the resume with its question area."""
     event = service.get_event(event_id)
@@ -455,13 +454,9 @@ def personal_interview_questions(
         return RedirectResponse(url=f"/my-schedule/events/{event_id}", status_code=303)
     selected = event.start_at.astimezone(DISPLAY_ZONE).date()
     context = {"selected_date": selected}
-    profile = profile_mapper.get(service.profile_id)
-    resume = resume_service.get_resume(profile.resume_id) if profile else None
-    context["my_resume"] = resume if resume and (
-        service.owner_id == "local" or resume.owner_id == service.owner_id
-    ) else None
+    context["resume_cache_scope"] = _resume_cache_scope(request)
     context["selected_event"] = _event_view(event, datetime.now(DISPLAY_ZONE))
-    experiences = experience_service.for_event(event_id)
+    experiences = experience_service.for_event(event_id, event=event)
     experience = next((item for item in experiences if item.id == experience_id), None)
     if experience is None:
         experience = experiences[0] if experiences else None
@@ -488,13 +483,12 @@ def personal_interview_questions(
 def _interview_workspace_context(
     service: PersonalScheduleService,
     selected: date,
-    profile_mapper: BaseMyResumeMapper,
-    resume_service: ResumeParserService,
 ) -> dict[str, Any]:
     """Adapt personal events to the original three-column interview layout."""
-    context = _dashboard_context(service, selected)
+    events = service.list_events()
+    context = _dashboard_context(service, selected, events=events)
     now = datetime.now(DISPLAY_ZONE)
-    interview_views = [_event_view(item, now) for item in service.list_events() if item.type == "interview"]
+    interview_views = [_event_view(item, now) for item in events if item.type == "interview"]
     context["entries"] = [item for item in interview_views if item["start_time"].date() == selected]
     _assign_entry_columns(context["entries"])
     context["today_interviews"] = [item for item in interview_views if item["start_time"].date() == now.date() and item["status"] != "finished"]
@@ -520,12 +514,18 @@ def _interview_workspace_context(
         )}
         for day in (selected - timedelta(days=1), selected, selected + timedelta(days=1))
     ]
-    profile = profile_mapper.get(service.profile_id)
-    resume = resume_service.get_resume(profile.resume_id) if profile else None
-    context["my_resume"] = resume if resume and (
-        service.owner_id == "local" or resume.owner_id == service.owner_id
-    ) else None
     return context
+
+
+def _resume_cache_scope(request: Request) -> str:
+    if request.app.state.settings.app_mode != "public_personal":
+        return "local"
+    return sha256(request.state.csrf_token.encode()).hexdigest()[:32]
+
+
+@router.get("/resume/current")
+def current_resume(request: Request, service: PersonalResumeStateService = Depends(get_personal_resume_state_service)):
+    return {"resume": service.current(), "cache_scope": _resume_cache_scope(request)}
 
 
 @router.post("/resume")
@@ -539,7 +539,8 @@ async def upload_personal_resume(
     try:
         parsed = await resume_service.parse_upload(resume, owner_id=service.owner_id)
     except ResumeParseError as exc:
-        context = _interview_workspace_context(service, datetime.now(DISPLAY_ZONE).date(), profile_mapper, resume_service)
+        context = _interview_workspace_context(service, datetime.now(DISPLAY_ZONE).date())
+        context["resume_cache_scope"] = _resume_cache_scope(request)
         context["resume_error"] = str(exc)
         return templates.TemplateResponse(request, "personal_interviews.html", context, status_code=422)
     profile_mapper.save(MyResumeProfile(id=service.profile_id, resume_id=parsed.id))

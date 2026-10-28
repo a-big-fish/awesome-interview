@@ -354,7 +354,7 @@ def test_personal_invitation_preview_and_interview_workspace():
         app.dependency_overrides.pop(get_my_resume_mapper, None)
 
 
-def test_personal_interview_resume_uses_original_full_page_view(tmp_path):
+def test_personal_interview_resume_keeps_full_page_view_but_loads_pdf_independently(tmp_path):
     profile = MemoryMyResumeMapper()
     resumes = MemoryResumeMapper()
     saved = resumes.save(Resume(file_name="sample.pdf", pdf_path="sample.pdf", page_count=1))
@@ -372,8 +372,9 @@ def test_personal_interview_resume_uses_original_full_page_view(tmp_path):
             assert 'class="card my-resume-panel"' in page.text
             assert 'class="own-resume-a4"' in page.text
             assert 'class="resume-replace-form"' in page.text
-            assert 'data-file-input hidden' in page.text
-            assert 'src="/resumes/' + saved.id + '/pdf"' in page.text
+            assert 'data-resume-file hidden' in page.text
+            assert 'data-resume-cache' in page.text and '同步简历' in page.text
+            assert '/resumes/' + saved.id + '/pdf' not in page.text
     finally:
         app.dependency_overrides.pop(get_personal_schedule_service, None)
         app.dependency_overrides.pop(get_my_resume_mapper, None)

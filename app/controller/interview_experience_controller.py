@@ -96,12 +96,13 @@ def _export_experience(experience, title: str, hide_company: bool,
 @router.get("", response_class=HTMLResponse)
 def experience_list(request: Request,
                     service: InterviewExperienceService = Depends(get_interview_experience_service)):
-    items = service.list_experiences()
+    summaries = service.list_summaries()
+    items = [row["experience"] for row in summaries]
     event_options = [event for event in service.schedule_service.list_events()
                      if event.type == "interview"]
     return templates.TemplateResponse(request, "interview_experience_list.html", {
         "experiences": items, "event_options": event_options,
-        "count_by_id": service.count_questions_by_experience(),
+        "count_by_id": {row["experience"].id: row["question_count"] for row in summaries},
     })
 
 

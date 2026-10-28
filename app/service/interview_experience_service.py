@@ -9,6 +9,7 @@ from app.model.interview_experience import (
     CATEGORY_LABELS, InterviewExperience, InterviewQuestion, QuestionCategory,
 )
 from app.service.personal_schedule_service import PersonalScheduleService
+from app.model.personal_event import PersonalEvent
 
 
 def _now() -> datetime:
@@ -24,6 +25,9 @@ class InterviewExperienceService:
 
     def list_experiences(self) -> list[InterviewExperience]:
         return self.mapper.list_experiences(self.owner_id)
+
+    def list_summaries(self) -> list[dict]:
+        return self.mapper.list_owned_summaries(self.owner_id)
 
     def list_plaza(self, company: str = "", order: str = "newest",
                    page: int = 1, page_size: int = 20) -> tuple[list[dict], int]:
@@ -56,11 +60,11 @@ class InterviewExperienceService:
         experience.updated_at = _now()
         return self.mapper.save_experience(experience)
 
-    def for_event(self, event_id: str) -> list[InterviewExperience]:
-        event = self.schedule_service.get_event(event_id)
-        if not event or event.type != "interview":
+    def for_event(self, event_id: str, event: PersonalEvent | None = None) -> list[InterviewExperience]:
+        event = event or self.schedule_service.get_event(event_id)
+        if not event or event.type != "interview" or event.id != event_id or event.owner_id != self.owner_id:
             return []
-        return [item for item in self.list_experiences() if item.linked_event_id == event_id]
+        return self.mapper.list_event_experiences(self.owner_id, event_id)
 
     def _event(self, event_id: str | None):
         if not event_id:

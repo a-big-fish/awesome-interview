@@ -39,6 +39,7 @@ from app.service.enterprise_calendar_service import EnterpriseCalendarService
 from app.service.personal_schedule_service import PersonalScheduleService
 from app.service.personal_todo_service import PersonalTodoService
 from app.service.interview_experience_service import InterviewExperienceService
+from app.service.personal_resume_service import PersonalResumeStateService
 
 
 @lru_cache
@@ -194,3 +195,12 @@ def get_interview_experience_service(
 ) -> InterviewExperienceService:
     owner_id = request.state.user.id if request.app.state.settings.app_mode == "public_personal" else "local"
     return InterviewExperienceService(mapper, schedule_service, owner_id)
+
+
+def get_personal_resume_state_service(
+    request: Request,
+    profiles: BaseMyResumeMapper = Depends(get_my_resume_mapper),
+    resumes: BaseResumeMapper = Depends(get_resume_mapper),
+) -> PersonalResumeStateService:
+    owner_id = request.state.user.id if request.app.state.settings.app_mode == "public_personal" else "local"
+    return PersonalResumeStateService(profiles, resumes, owner_id)

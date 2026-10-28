@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     pg_dbname: str = "interview-system"
     pg_user: str = "postgres"
     pg_password: str = ""
-    pg_connect_timeout_seconds: float = 5.0
+    pg_connect_timeout_seconds: float = 3.0
     performance_enabled: bool = True
     performance_db_path: str = "data/performance.sqlite3"
 

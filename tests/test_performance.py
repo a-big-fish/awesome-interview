@@ -95,7 +95,9 @@ def test_database_phases_include_failed_queries_without_retaining_sql(monkeypatc
     cursor = MagicMock()
     connection.cursor.return_value = cursor
     cursor.execute.side_effect = RuntimeError("failed query")
-    monkeypatch.setattr("app.core.performance.psycopg.connect", lambda *args, **kwargs: connection)
+    pool = MagicMock()
+    pool.connection.return_value.__enter__.return_value = connection
+    monkeypatch.setattr("app.core.postgres_pool.get_pool", lambda *args, **kwargs: pool)
     timings = RequestTimings()
     token = request_timings.set(timings)
     try:
@@ -105,7 +107,7 @@ def test_database_phases_include_failed_queries_without_retaining_sql(monkeypatc
                     query.execute("private sql", ["private parameters"])
     finally:
         request_timings.reset(token)
-    assert set(timings.values) == {"db_connect", "db_query"}
+    assert set(timings.values) == {"db_pool_wait", "db_query"}
     assert all(duration >= 0 for duration in timings.values.values())
 
 

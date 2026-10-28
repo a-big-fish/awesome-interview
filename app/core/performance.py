@@ -20,6 +20,7 @@ NODE_LABELS = {
 }
 METRIC_LABELS = {
     "request": "请求", "auth": "会话鉴权", "db_connect": "数据库连接",
+    "db_pool_wait": "数据库连接池借用等待",
     "db_query": "数据库执行/提交", "ttfb": "首字节 TTFB", "load": "页面加载",
     "lcp": "最大内容绘制 LCP", "longtask": "主线程长任务", "cache_render": "缓存页面呈现",
     "parse_text": "文本规则解析", "parse_markdown": "Markdown 结构解析",
@@ -140,6 +141,5 @@ class _TimedDatabase:
 
 
 def timed_postgres_connect(*args, **kwargs):
-    with measure_phase("db_connect"):
-        connection = psycopg.connect(*args, **kwargs)
-    return _TimedDatabase(connection) if request_timings.get() is not None else connection
+    from app.core.postgres_pool import connection
+    return connection(*args, **kwargs)

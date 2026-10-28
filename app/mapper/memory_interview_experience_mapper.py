@@ -43,6 +43,29 @@ class MemoryInterviewExperienceMapper(BaseInterviewExperienceMapper):
             return [item.model_copy(deep=True) for item in self._experiences.values()
                     if item.is_public]
 
+    def list_public_batch(self, company: str, order: str, offset: int,
+                          limit: int) -> tuple[list[dict], int]:
+        with self._lock:
+            counts = self.count_public_questions()
+            entries = [{"experience": item.model_copy(deep=True),
+                        "question_count": counts.get(item.id, 0)}
+                       for item in self._experiences.values()
+                       if item.is_public and (item.company or "").strip()
+                       and (not company or company.casefold() in item.company.casefold())
+                       and (counts.get(item.id, 0) or (item.feeling or "").strip())]
+        dated = [row for row in entries if row["experience"].interviewed_at]
+        undated = [row for row in entries if not row["experience"].interviewed_at]
+        dated.sort(key=lambda row: (row["experience"].interviewed_at, row["experience"].id),
+                   reverse=order != "oldest")
+        undated.sort(key=lambda row: row["experience"].id, reverse=order != "oldest")
+        entries = dated + undated
+        result = entries[offset:offset + limit]
+        for row in result:
+            item = row["experience"]
+            item.raw_text_draft = ""
+            item.feeling = item.feeling[:111] if item.feeling else None
+        return result, len(entries)
+
     def find_public_experience(self, experience_id: str) -> InterviewExperience | None:
         with self._lock:
             item = self._experiences.get(experience_id)

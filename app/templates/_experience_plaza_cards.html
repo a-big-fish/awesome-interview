@@ -1,0 +1,10 @@
+{% for row in items %}{% set item = row.experience %}
+<a class="card experience-plaza-card" data-plaza-id="{{ item.id }}" href="/my-schedule/experiences/plaza/{{ item.id }}">
+  <span class="experience-plaza-card-kicker">公开面经{% if item.interview_round %} · {{ item.interview_round }}{% endif %}</span>
+  <h2>{{ item.title }}</h2>
+  <p>{{ item.company or '公司未填写' }} · {{ item.position or '岗位未填写' }}</p>
+  <p class="experience-public-author">作者：{{ row.author }}</p>
+  <div class="experience-plaza-card-meta"><span>{{ item.interviewed_at.strftime('%Y-%m-%d') if item.interviewed_at else '面试时间未填写' }}</span><span>{{ row.question_count }} 道问题</span></div>
+  {% if item.feeling %}<p class="experience-plaza-excerpt">{{ item.feeling[:110] }}{% if item.feeling|length > 110 %}…{% endif %}</p>{% endif %}
+</a>
+{% endfor %}

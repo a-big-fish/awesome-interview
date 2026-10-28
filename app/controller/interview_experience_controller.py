@@ -125,7 +125,7 @@ async def create_experience(request: Request,
 
 @router.get("/plaza", response_class=HTMLResponse)
 def experience_plaza(request: Request, company: str = "", order: str = "newest",
-                     page: int = 1,
+                     page: int = 1, batch: bool = False,
                      service: InterviewExperienceService = Depends(get_interview_experience_service)):
     order = order if order in {"newest", "oldest"} else "newest"
     items, total = service.list_plaza(company=company.strip()[:200], order=order,
@@ -136,9 +136,15 @@ def experience_plaza(request: Request, company: str = "", order: str = "newest",
     for row in items:
         owner_id = row["experience"].owner_id
         row["author"] = _author_label(authors.get(owner_id), owner_id)
+    next_page = max(1, page) + 1 if max(1, page) * 20 < total else None
+    if batch:
+        return JSONResponse({
+            "html": templates.get_template("_experience_plaza_cards.html").render(items=items),
+            "next_page": next_page, "total": total,
+        })
     return templates.TemplateResponse(request, "interview_experience_plaza.html", {
         "items": items, "total": total, "company": company, "order": order,
-        "page": max(1, page), "page_size": 20,
+        "page": max(1, page), "page_size": 20, "next_page": next_page,
     })
 
 

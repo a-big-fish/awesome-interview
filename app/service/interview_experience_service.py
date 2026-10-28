@@ -28,25 +28,8 @@ class InterviewExperienceService:
     def list_plaza(self, company: str = "", order: str = "newest",
                    page: int = 1, page_size: int = 20) -> tuple[list[dict], int]:
         """Return visible, substantive experiences without exposing private fields."""
-        candidates = self.mapper.list_public_experiences()
-        counts = self.mapper.count_public_questions()
-        entries = []
-        for item in candidates:
-            if not (item.company or "").strip():
-                continue
-            if company and company.casefold() not in (item.company or "").casefold():
-                continue
-            count = counts.get(item.id, 0)
-            if not count and not (item.feeling or "").strip():
-                continue
-            entries.append({"experience": item, "question_count": count})
-        dated = [entry for entry in entries if entry["experience"].interviewed_at]
-        undated = [entry for entry in entries if not entry["experience"].interviewed_at]
-        dated.sort(key=lambda entry: (entry["experience"].interviewed_at,
-                                      entry["experience"].id), reverse=order != "oldest")
-        entries = dated + undated
         start = (max(page, 1) - 1) * page_size
-        return entries[start:start + page_size], len(entries)
+        return self.mapper.list_public_batch(company, order, start, page_size)
 
     def get_public_experience(self, experience_id: str) -> tuple[InterviewExperience, list[InterviewQuestion]] | None:
         """Read a public experience only when it contains saved content."""

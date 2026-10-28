@@ -10,20 +10,12 @@
     <button class="btn" type="submit">筛选</button>
   </form>
   <p class="experience-plaza-count">找到 {{ total }} 篇面经</p>
-  {% if items %}<div class="experience-plaza-grid">{% for row in items %}{% set item = row.experience %}
-    <a class="card experience-plaza-card" href="/my-schedule/experiences/plaza/{{ item.id }}">
-      <span class="experience-plaza-card-kicker">公开面经{% if item.interview_round %} · {{ item.interview_round }}{% endif %}</span>
-      <h2>{{ item.title }}</h2>
-      <p>{{ item.company or '公司未填写' }} · {{ item.position or '岗位未填写' }}</p>
-      <p class="experience-public-author">作者：{{ row.author }}</p>
-      <div class="experience-plaza-card-meta"><span>{{ item.interviewed_at.strftime('%Y-%m-%d') if item.interviewed_at else '面试时间未填写' }}</span><span>{{ row.question_count }} 道问题</span></div>
-      {% if item.feeling %}<p class="experience-plaza-excerpt">{{ item.feeling[:110] }}{% if item.feeling|length > 110 %}…{% endif %}</p>{% endif %}
-    </a>
-  {% endfor %}</div>{% else %}<div class="card experience-plaza-empty">暂无符合条件的公开面经。试试其他公司名称。</div>{% endif %}
-  <nav class="experience-plaza-pagination" aria-label="分页">
-    {% if page > 1 %}<a href="?company={{ company|urlencode }}&order={{ order }}&page={{ page - 1 }}">上一页</a>{% endif %}
-    <span>第 {{ page }} 页</span>
-    {% if page * page_size < total %}<a href="?company={{ company|urlencode }}&order={{ order }}&page={{ page + 1 }}">下一页</a>{% endif %}
-  </nav>
+  {% if items %}
+  <div class="experience-plaza-grid" data-plaza-grid>{% include '_experience_plaza_cards.html' %}</div>
+  <div class="experience-plaza-loader" data-plaza-loader data-company="{{ company }}" data-order="{{ order }}" data-next-page="{{ next_page or '' }}">
+    <p role="status" aria-live="polite" data-plaza-status>{{ '下滑加载更多面经' if next_page else '已显示全部面经' }}</p>
+    {% if next_page %}<a class="btn secondary" data-plaza-more href="?company={{ company|urlencode }}&order={{ order }}&page={{ next_page }}">加载更多</a>{% endif %}
+  </div>
+  {% else %}<div class="card experience-plaza-empty">暂无符合条件的公开面经。试试其他公司名称。</div>{% endif %}
 </div>
 {% endblock %}

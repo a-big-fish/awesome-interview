@@ -23,6 +23,10 @@ class BaseInterviewExperienceMapper(ABC):
     def list_public_experiences(self) -> list[InterviewExperience]: ...
 
     @abstractmethod
+    def list_public_batch(self, company: str, order: str, offset: int,
+                          limit: int) -> tuple[list[dict], int]: ...
+
+    @abstractmethod
     def find_public_experience(self, experience_id: str) -> InterviewExperience | None: ...
 
     @abstractmethod

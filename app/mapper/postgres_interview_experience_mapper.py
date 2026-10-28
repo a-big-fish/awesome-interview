@@ -118,6 +118,34 @@ class PostgresInterviewExperienceMapper(BaseInterviewExperienceMapper):
             ).fetchone()
         return InterviewExperience.model_validate(row["payload"]) if row else None
 
+    def list_public_batch(self, company: str, order: str, offset: int,
+                          limit: int) -> tuple[list[dict], int]:
+        direction = "ASC" if order == "oldest" else "DESC"
+        pattern = "%" + company.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        # Select the batch first; count questions only for those IDs. The seed row
+        # preserves the total even when the requested batch is empty.
+        query = (
+            "WITH eligible AS (SELECT id, payload FROM personal_interview_experiences e "
+            "WHERE COALESCE((payload->>'is_public')::boolean, TRUE) "
+            "AND NULLIF(BTRIM(COALESCE(payload->>'company', '')), '') IS NOT NULL "
+            "AND COALESCE(payload->>'company', '') ILIKE %s "
+            "AND (NULLIF(BTRIM(COALESCE(payload->>'feeling', '')), '') IS NOT NULL "
+            "OR EXISTS (SELECT 1 FROM personal_interview_questions q WHERE q.experience_id=e.id))), "
+            "batch AS (SELECT id, payload, NULLIF(payload->>'interviewed_at', '')::timestamptz AS interviewed "
+            f"FROM eligible ORDER BY interviewed {direction} NULLS LAST, id {direction} LIMIT %s OFFSET %s) "
+            "SELECT (SELECT COUNT(*) FROM eligible) AS total, "
+            "b.payload - 'raw_text_draft' - 'feeling' || "
+            "jsonb_build_object('feeling', LEFT(b.payload->>'feeling', 111)) AS payload, "
+            "(SELECT COUNT(*) FROM personal_interview_questions q WHERE q.experience_id=b.id) AS question_count "
+            "FROM (SELECT 1) seed LEFT JOIN batch b ON TRUE "
+            f"ORDER BY b.interviewed {direction} NULLS LAST, b.id {direction}"
+        )
+        with self._connect() as connection:
+            rows = connection.execute(query, (pattern, limit, offset)).fetchall()
+        return ([{"experience": InterviewExperience.model_validate(row["payload"]),
+                  "question_count": row["question_count"]} for row in rows if row["payload"]],
+                rows[0]["total"] if rows else 0)
+
     def list_public_questions(self, experience_id: str) -> list[InterviewQuestion]:
         with self._connect() as connection:
             rows = connection.execute(

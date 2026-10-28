@@ -71,3 +71,5 @@
 .experience-parser-import{position:sticky;bottom:0;display:flex;gap:8px;padding:12px 0;background:#fff}.experience-parser-import select{flex:1}
 [data-parser-unrecognized]{background:#fff5e9;border:1px solid #f2d5aa;border-radius:8px;padding:12px;font-size:12px;color:#80581c}
 @media(max-width:1000px){.interview-questions-panel.is-parsing{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(300px,1fr) minmax(260px,1fr);overflow-y:auto}.interview-questions-panel.is-parsing>.interview-questions-header{grid-column:1;grid-row:1}.experience-parser-pane{grid-column:1;grid-row:2}.experience-parser-preview{grid-column:1;grid-row:3;border-left:0;border-top:1px solid #dce5f2}}
+
+.experience-plaza-loader{text-align:center;padding:20px;color:#64748b}.experience-plaza-loader .btn{display:inline-flex;min-height:44px;align-items:center}.experience-plaza-loader [aria-disabled=true]{opacity:.6;pointer-events:none}

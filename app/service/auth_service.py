@@ -180,9 +180,7 @@ class AuthService:
     def authenticate(self, raw_token: str | None) -> tuple[AuthUser, AuthSession] | None:
         if not raw_token:
             return None
-        session = self.mapper.find_session(token_hash(raw_token), datetime.now(timezone.utc))
-        user = self.mapper.get_user(session.user_id) if session else None
-        return (user, session) if user and not user.is_disabled else None
+        return self.mapper.authenticate_session(token_hash(raw_token), datetime.now(timezone.utc))
 
     def logout(self, raw_token: str | None) -> None:
         if raw_token:

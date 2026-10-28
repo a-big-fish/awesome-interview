@@ -159,6 +159,19 @@ class PostgresAuthMapper(BaseAuthMapper):
             """, (token_hash, now)).fetchone()
         return AuthSession(**row) if row else None
 
+    def authenticate_session(self, token_hash: str, now: datetime) -> tuple[AuthUser, AuthSession] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT s.token_hash, s.user_id, s.csrf_token, s.expires_at, to_jsonb(u) AS user_data "
+                "FROM personal_sessions s JOIN personal_users u ON u.id=s.user_id "
+                "WHERE s.token_hash=%s AND s.revoked_at IS NULL AND s.expires_at>%s "
+                "AND NOT u.is_disabled", (token_hash, now),
+            ).fetchone()
+        if not row:
+            return None
+        return self._to_user(row["user_data"]), AuthSession(**{key: row[key] for key in (
+            "token_hash", "user_id", "csrf_token", "expires_at")})
+
     def revoke_session(self, token_hash: str) -> None:
         with self._connect() as connection:
             connection.execute("UPDATE personal_sessions SET revoked_at = NOW() WHERE token_hash = %s", (token_hash,))
@@ -189,4 +202,7 @@ class PostgresAuthMapper(BaseAuthMapper):
 
     @staticmethod
     def _to_user(row: DictRow) -> AuthUser:
-        return AuthUser(**dict(row))
+        values = dict(row)
+        if isinstance(values.get("created_at"), str):
+            values["created_at"] = datetime.fromisoformat(values["created_at"])
+        return AuthUser(**values)

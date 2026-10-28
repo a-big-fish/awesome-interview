@@ -7,6 +7,11 @@ from app.model.auth import AuthSession, AuthUser
 
 
 class BaseAuthMapper(ABC):
+    def authenticate_session(self, token_hash: str, now: datetime) -> tuple[AuthUser, AuthSession] | None:
+        session = self.find_session(token_hash, now)
+        user = self.get_user(session.user_id) if session else None
+        return (user, session) if user and not user.is_disabled else None
+
     @abstractmethod
     def create_user(self, user: AuthUser) -> bool: ...
 

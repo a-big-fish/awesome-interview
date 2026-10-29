@@ -32,6 +32,7 @@ final class NativeEventScreen extends ScrollView {
         void save(String eventId, JSONObject payload);
         void parse(String rawText);
         void delete(String eventId);
+        void complete(String eventId, boolean completed);
         void back();
     }
 
@@ -281,6 +282,11 @@ final class NativeEventScreen extends ScrollView {
             }
         }
         button("编辑日程", NativeButtons.Role.PRIMARY).setOnClickListener(v -> showForm(event));
+        boolean done = !event.isNull("completed_at") && !event.optString("completed_at").isEmpty();
+        button(done ? "恢复为未完成" : "标记为已完成", NativeButtons.Role.TONAL)
+                .setOnClickListener(v -> {
+                    actions.complete(eventId, !done);
+                });
         button("删除日程", NativeButtons.Role.DANGER).setOnClickListener(v -> actions.delete(eventId));
         button("返回日历", NativeButtons.Role.OUTLINED).setOnClickListener(v -> actions.back());
         scrollTo(0, 0);

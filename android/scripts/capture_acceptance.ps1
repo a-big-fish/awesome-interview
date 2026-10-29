@@ -38,12 +38,12 @@ $screens = @(
     @{ Mode = 'export-page2'; Name = '04-native-export-page-2.png' },
     @{ Mode = 'export-options'; Name = '05-native-export-settings.png' }
 )
-if ($Round -eq 'buttons' -or $Round -eq 'web-sync-v1-1') {
+if ($Round -in @('buttons', 'web-sync-v1-1', 'native-calendar-v1-2')) {
     $screens += @{ Mode = 'dashboard-home'; Name = '06-native-home-buttons.png' }
     $screens += @{ Mode = 'dashboard-calendar'; Name = '07-native-calendar-buttons.png' }
     $screens += @{ Mode = 'event-detail'; Name = '08-native-event-detail-buttons.png' }
 }
-if ($Round -eq 'web-sync-v1-1') {
+if ($Round -in @('web-sync-v1-1', 'native-calendar-v1-2')) {
     $screens += @{ Mode = 'dashboard-next-day'; Name = '09-next-day-overnight-event.png' }
 }
 foreach ($screen in $screens) {

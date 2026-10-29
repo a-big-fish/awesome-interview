@@ -255,6 +255,10 @@ public final class MainActivity extends Activity {
             @Override public void save(String id, JSONObject payload) { writeEvent(id, payload); }
             @Override public void parse(String rawText) { parseInvitation(rawText); }
             @Override public void delete(String id) { confirmDeleteEvent(id); }
+            @Override public void complete(String id, boolean completed) {
+                try { writeEventRequest("COMPLETE", id, new JSONObject().put("completed", completed)); }
+                catch (Exception ignored) { }
+            }
             @Override public void back() {
                 activeTab = 1;
                 updateNavigation();
@@ -555,8 +559,9 @@ public final class MainActivity extends Activity {
                 String csrf = currentCsrf(cookie);
                 if (csrf == null) throw new IllegalStateException("登录已过期");
                 String path = "/api/mobile/v1/events" + (id == null ? "" : "/" + Uri.encode(id));
+                if ("COMPLETE".equals(method)) path += "/completion";
                 connection = (HttpURLConnection) new URL(ORIGIN + path).openConnection();
-                connection.setRequestMethod(method);
+                connection.setRequestMethod("COMPLETE".equals(method) ? "POST" : method);
                 connection.setRequestProperty("Cookie", cookie);
                 connection.setRequestProperty("X-CSRF-Token", csrf);
                 connection.setConnectTimeout(8000);
@@ -594,6 +599,11 @@ public final class MainActivity extends Activity {
                 if (status != expected) throw new IllegalStateException("保存失败（" + status + "），请重试");
                 JSONObject saved = payload == null ? null : new JSONObject(readResponse(connection.getInputStream()));
                 runOnUiThread(() -> {
+                    if ("COMPLETE".equals(method) && saved != null) {
+                        eventScreen.showEvent(saved);
+                        Toast.makeText(this, "完成状态已更新", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     if (saved != null) try {
                         dashboard.selectDate(OffsetDateTime.parse(saved.getString("start_at"))
                                 .atZoneSameInstant(java.time.ZoneId.of("Asia/Shanghai")).toLocalDate());

@@ -291,10 +291,12 @@ final class NativeDashboard extends ScrollView {
         for (JSONObject item : events()) {
             if (!coversDate(item, day)) continue;
             events++;
-            if (weekMode && events <= 2) {
+            if (events <= (weekMode ? 2 : 1)) {
                 String prefix = completed(item) ? "✓ " : day.equals(eventDate(item)) ? "" : "↖ ";
                 TextView label = text(prefix + item.optString("title"), 10, Color.WHITE, false);
                 label.setSingleLine(true);
+                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                label.setContentDescription(item.optString("title") + (completed(item) ? "，已完成" : ""));
                 label.setPadding(dp(2), 0, dp(2), 0);
                 label.setBackground(background(eventColor(item.optString("type")), 3, Color.TRANSPARENT));
                 LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, dp(19));
@@ -302,7 +304,9 @@ final class NativeDashboard extends ScrollView {
                 cell.addView(label, layout);
             }
         }
-        if (!weekMode && events > 0) cell.addView(text(events + " 项", 10, TEAL, true));
+        int shown = weekMode ? 2 : 1;
+        if (events > shown) cell.addView(text("+" + (events - shown) + " 项", 10, TEAL, true));
+        cell.setContentDescription(day + "，" + events + " 项日程，点击查看当天安排");
         cell.setOnClickListener(v -> {
             selected = day;
             visibleMonth = day.withDayOfMonth(1);
@@ -369,7 +373,11 @@ final class NativeDashboard extends ScrollView {
         render();
     }
 
-    private List<JSONObject> events() { return items("events"); }
+    private List<JSONObject> events() {
+        List<JSONObject> result = items("events");
+        result.sort((left, right) -> left.optString("start_at").compareTo(right.optString("start_at")));
+        return result;
+    }
     private List<JSONObject> todos() { return items("todos"); }
 
     private List<JSONObject> items(String key) {

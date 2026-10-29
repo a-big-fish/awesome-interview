@@ -208,6 +208,19 @@ def test_native_event_api_reuses_schedule_validation_and_owner_checks(tmp_path):
                                    json={**payload, "title": "已修改"},
                                    headers={"X-CSRF-Token": alice_csrf})
         assert updated.status_code == 200 and updated.json()["title"] == "已修改"
+        completion_url = f"/api/mobile/v1/events/{event_id}/completion"
+        assert alice_client.post(completion_url, json={"completed": True}).status_code == 403
+        assert bob_client.post(completion_url, json={"completed": True},
+                               headers={"X-CSRF-Token": bob_csrf}).status_code == 404
+        completed = alice_client.post(completion_url, json={"completed": True},
+                                      headers={"X-CSRF-Token": alice_csrf})
+        assert completed.status_code == 200 and completed.json()["completed_at"]
+        assert completed.json()["start_at"] == updated.json()["start_at"]
+        assert alice_client.post(completion_url, json={"completed": "false"},
+                                 headers={"X-CSRF-Token": alice_csrf}).status_code == 422
+        restored = alice_client.post(completion_url, json={"completed": False},
+                                     headers={"X-CSRF-Token": alice_csrf})
+        assert restored.status_code == 200 and restored.json()["completed_at"] is None
         assert bob_client.delete(f"/api/mobile/v1/events/{event_id}",
                                  headers={"X-CSRF-Token": bob_csrf}).status_code == 404
         assert alice_client.delete(f"/api/mobile/v1/events/{event_id}",

@@ -38,6 +38,10 @@ class NativeInvitationInput(BaseModel):
     raw_text: str = Field(min_length=1)
 
 
+class NativeCompletionInput(BaseModel):
+    completed: bool = Field(strict=True)
+
+
 def _event_error(error: Exception) -> HTTPException:
     return HTTPException(status_code=422, detail=str(error))
 
@@ -101,6 +105,17 @@ def delete_event(event_id: str,
     """Delete one event owned by the current account."""
     if not schedule.delete_event(event_id):
         raise HTTPException(404, detail="日程不存在")
+
+
+@router.post("/events/{event_id}/completion")
+def complete_event(event_id: str, payload: NativeCompletionInput,
+                   schedule: PersonalScheduleService = Depends(get_personal_schedule_service)) -> dict:
+    """Set completion for an owned event and return its updated native detail."""
+    try:
+        event = schedule.set_event_completed(event_id, payload.completed)
+    except LookupError as error:
+        raise HTTPException(404, detail="日程不存在") from error
+    return event.model_dump(mode="json", exclude={"raw_invitation"})
 
 
 @router.get("/snapshot")

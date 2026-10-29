@@ -38,12 +38,12 @@ $screens = @(
     @{ Mode = 'export-page2'; Name = '04-native-export-page-2.png' },
     @{ Mode = 'export-options'; Name = '05-native-export-settings.png' }
 )
-if ($Round -in @('buttons', 'web-sync-v1-1', 'native-calendar-v1-2')) {
+if ($Round -in @('buttons', 'web-sync-v1-1', 'native-calendar-v1-2', 'skill-redesign')) {
     $screens += @{ Mode = 'dashboard-home'; Name = '06-native-home-buttons.png' }
     $screens += @{ Mode = 'dashboard-calendar'; Name = '07-native-calendar-buttons.png' }
     $screens += @{ Mode = 'event-detail'; Name = '08-native-event-detail-buttons.png' }
 }
-if ($Round -in @('web-sync-v1-1', 'native-calendar-v1-2')) {
+if ($Round -in @('web-sync-v1-1', 'native-calendar-v1-2', 'skill-redesign')) {
     $screens += @{ Mode = 'dashboard-next-day'; Name = '09-next-day-overnight-event.png' }
 }
 foreach ($screen in $screens) {
@@ -58,6 +58,35 @@ foreach ($screen in $screens) {
 }
 & $adb -s $Serial shell rm /sdcard/Download/awesome-acceptance.png | Out-Null
 
+if ($Round -eq 'skill-redesign') {
+    $previousFontScale = (& $adb -s $Serial shell settings get system font_scale).Trim()
+    try {
+        & $adb -s $Serial shell wm density 480 | Out-Null
+        & $adb -s $Serial shell settings put system font_scale 1.3 | Out-Null
+        & $adb -s $Serial shell am force-stop xyz.hunaochufang.awesomeinterview | Out-Null
+        & $adb -s $Serial shell am start -n 'xyz.hunaochufang.awesomeinterview/.MainActivity' --es acceptance_screen event | Out-Null
+        Start-Sleep -Seconds 5
+        & $adb -s $Serial shell screencap -p /sdcard/Download/awesome-acceptance.png | Out-Null
+        & $adb -s $Serial pull /sdcard/Download/awesome-acceptance.png (Join-Path $destination '10-narrow-large-font.png') | Out-Null
+        & $adb -s $Serial shell uiautomator dump /sdcard/Download/awesome-ui.xml | Out-Null
+        $xmlText = (& $adb -s $Serial shell cat /sdcard/Download/awesome-ui.xml) -join "`n"
+        [xml]$ui = $xmlText
+        $inputNode = $ui.SelectSingleNode('//node[@class="android.widget.EditText"]')
+        if (-not $inputNode) { throw '窄屏验收找不到日程标题输入框' }
+        $bounds = [regex]::Match($inputNode.bounds, '\[(\d+),(\d+)\]\[(\d+),(\d+)\]')
+        $tapX = [int](([int]$bounds.Groups[1].Value + [int]$bounds.Groups[3].Value) / 2)
+        $tapY = [int](([int]$bounds.Groups[2].Value + [int]$bounds.Groups[4].Value) / 2)
+        & $adb -s $Serial shell input tap $tapX $tapY | Out-Null
+        Start-Sleep -Seconds 6
+        & $adb -s $Serial shell screencap -p /sdcard/Download/awesome-acceptance.png | Out-Null
+        & $adb -s $Serial pull /sdcard/Download/awesome-acceptance.png (Join-Path $destination '11-narrow-keyboard.png') | Out-Null
+    } finally {
+        & $adb -s $Serial shell settings put system font_scale $previousFontScale | Out-Null
+        & $adb -s $Serial shell wm density 420 | Out-Null
+        & $adb -s $Serial shell rm /sdcard/Download/awesome-acceptance.png /sdcard/Download/awesome-ui.xml | Out-Null
+    }
+}
+
 $manifest = [ordered]@{
     captured_at_china = [TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $chinaZone).ToString('yyyy-MM-dd HH:mm:ss')
     app_version = '1.0.0-alpha3'
@@ -65,6 +94,7 @@ $manifest = [ordered]@{
     apk = 'android/app/build/outputs/apk/debug/app-debug.apk'
     data = '本地合成示例；不包含真实用户数据'
     screens = @($screens | ForEach-Object { $_.Name })
+    additional_checks = $(if ($Round -eq 'skill-redesign') { @('10-narrow-large-font.png', '11-narrow-keyboard.png') } else { @() })
 }
 $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $destination 'manifest.json') -Encoding UTF8
 Write-Output $destination

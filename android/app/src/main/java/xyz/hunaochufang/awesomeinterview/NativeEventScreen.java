@@ -91,6 +91,7 @@ final class NativeEventScreen extends ScrollView {
         GradientDrawable shape = new GradientDrawable();
         shape.setColor(color);
         shape.setCornerRadius(dp(12));
+        shape.setStroke(dp(1), Color.rgb(215, 225, 231));
         return shape;
     }
 
@@ -120,6 +121,9 @@ final class NativeEventScreen extends ScrollView {
         addLabel(label);
         EditText input = new EditText(getContext());
         input.setSingleLine(true);
+        input.setId(View.generateViewId());
+        ((TextView) body.getChildAt(body.getChildCount() - 1)).setLabelFor(input.getId());
+        input.setHint("请输入" + label.replace("（面试可选）", ""));
         input.setText(value);
         input.setTextSize(16);
         input.setPadding(dp(12), dp(10), dp(12), dp(10));
@@ -142,7 +146,9 @@ final class NativeEventScreen extends ScrollView {
     }
 
     private String displayDate(ZonedDateTime value) {
-        return value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        String pattern = value.getYear() == ZonedDateTime.now(ZONE).getYear()
+                ? "M月d日 HH:mm" : "yyyy年M月d日 HH:mm";
+        return value.format(DateTimeFormatter.ofPattern(pattern, java.util.Locale.SIMPLIFIED_CHINESE));
     }
 
     private void pickDateTime(boolean starting) {
@@ -188,8 +194,25 @@ final class NativeEventScreen extends ScrollView {
                 body.removeView(child);
                 invitationGroup.addView(child);
             }
+            LinearLayout invitationFields = new LinearLayout(getContext());
+            invitationFields.setOrientation(LinearLayout.VERTICAL);
+            while (invitationGroup.getChildCount() > 0) {
+                View child = invitationGroup.getChildAt(0);
+                invitationGroup.removeView(child);
+                invitationFields.addView(child);
+            }
+            Button expand = NativeButtons.make(getContext(), "从面试邀请快速填写  ▾", NativeButtons.Role.TONAL);
+            invitationGroup.addView(expand, new LinearLayout.LayoutParams(-1, dp(48)));
+            invitationGroup.addView(invitationFields);
+            invitationFields.setVisibility(GONE);
+            expand.setOnClickListener(v -> {
+                boolean open = invitationFields.getVisibility() != VISIBLE;
+                invitationFields.setVisibility(open ? VISIBLE : GONE);
+                expand.setText(open ? "收起面试邀请  ▴" : "从面试邀请快速填写  ▾");
+            });
         }
-        EditText title = field("标题", initial == null ? "" : initial.optString("title"));
+        EditText title = field("日程标题", initial == null ? "" : initial.optString("title"));
+        title.setHint("例如：后端开发二面");
         addLabel("类型");
         Spinner type = new Spinner(getContext());
         type.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, TYPES));
@@ -224,6 +247,7 @@ final class NativeEventScreen extends ScrollView {
         });
         EditText location = field("地点", initial == null ? "" : initial.optString("location_text"));
         EditText note = field("备注", initial == null ? "" : initial.optString("note"));
+        note.setHint("补充准备事项或其他信息（选填）");
         addLabel("系统提醒（默认关闭）");
         int[] offsets = {10, 60, 1440};
         String[] reminders = {"提前 10 分钟", "提前 1 小时", "提前 1 天"};
@@ -232,6 +256,8 @@ final class NativeEventScreen extends ScrollView {
         for (int i = 0; i < checks.length; i++) {
             checks[i] = new CheckBox(getContext());
             checks[i].setText(reminders[i]);
+            checks[i].setTextSize(14);
+            checks[i].setMinHeight(dp(48));
             if (saved != null) for (int j = 0; j < saved.length(); j++)
                 if (saved.optInt(j) == offsets[i]) checks[i].setChecked(true);
             body.addView(checks[i]);
@@ -287,8 +313,10 @@ final class NativeEventScreen extends ScrollView {
                 .setOnClickListener(v -> {
                     actions.complete(eventId, !done);
                 });
-        button("删除日程", NativeButtons.Role.DANGER).setOnClickListener(v -> actions.delete(eventId));
         button("返回日历", NativeButtons.Role.OUTLINED).setOnClickListener(v -> actions.back());
+        Button delete = button("删除日程", NativeButtons.Role.TEXT);
+        delete.setTextColor(Color.rgb(174, 45, 64));
+        delete.setOnClickListener(v -> actions.delete(eventId));
         scrollTo(0, 0);
     }
 }

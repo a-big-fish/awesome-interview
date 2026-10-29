@@ -115,12 +115,12 @@ final class NativeDashboard extends ScrollView {
         LinearLayout hero = new LinearLayout(getContext());
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setPadding(dp(20), dp(17), dp(20), dp(18));
-        hero.setBackgroundColor(TEAL);
-        TextView title = text("待办清单", 24, Color.WHITE, true);
+        hero.setBackgroundColor(Color.WHITE);
+        TextView title = text("安排好每一天", 24, INK, true);
         hero.addView(title);
         hero.addView(text(selected.format(DateTimeFormatter.ofPattern("yyyy 年 M 月 d 日")) +
                 "  ·  周" + WEEKDAYS[selected.getDayOfWeek().getValue() - 1], 13,
-                Color.rgb(218, 249, 245), false));
+                MUTED, false));
         addWeekStrip(hero);
         body.addView(hero);
 
@@ -161,10 +161,11 @@ final class NativeDashboard extends ScrollView {
         for (int i = 0; i < 7; i++) {
             LocalDate day = monday.plusDays(i);
             TextView cell = text("周" + WEEKDAYS[i] + "\n" + day.getDayOfMonth(), 13,
-                    day.equals(selected) ? TEAL : Color.WHITE, day.equals(selected));
+                    day.equals(selected) ? Color.WHITE : MUTED, day.equals(selected));
             cell.setGravity(Gravity.CENTER);
             cell.setMinHeight(dp(58));
-            if (day.equals(selected)) cell.setBackground(background(Color.WHITE, 20, Color.TRANSPARENT));
+            if (day.equals(selected)) cell.setBackground(background(TEAL, 16, Color.TRANSPARENT));
+            cell.setContentDescription(day + (day.equals(selected) ? "，已选择" : "，查看当天安排"));
             cell.setOnClickListener(v -> { selected = day; visibleMonth = day.withDayOfMonth(1); render(); });
             strip.addView(cell, new LinearLayout.LayoutParams(0, dp(58), 1));
         }
@@ -233,7 +234,9 @@ final class NativeDashboard extends ScrollView {
             option.setOnClickListener(v -> { weekMode = mode; render(); });
             switcher.addView(option, new LinearLayout.LayoutParams(0, dp(48), 1));
         }
-        header.addView(switcher);
+        LinearLayout.LayoutParams switchParams = new LinearLayout.LayoutParams(-1, dp(48));
+        switchParams.topMargin = dp(12);
+        header.addView(switcher, switchParams);
         body.addView(header);
 
         SwipeContainer swipe = new SwipeContainer(getContext());
@@ -264,7 +267,7 @@ final class NativeDashboard extends ScrollView {
             GridLayout.LayoutParams spec = new GridLayout.LayoutParams(
                     GridLayout.spec(i / 7), GridLayout.spec(i % 7, 1f));
             spec.width = 0;
-            spec.height = dp(weekMode ? 108 : 63);
+            spec.height = dp(weekMode ? 108 : 60);
             spec.setMargins(dp(1), dp(1), dp(1), dp(1));
             grid.addView(cell, spec);
         }
@@ -293,12 +296,12 @@ final class NativeDashboard extends ScrollView {
             events++;
             if (events <= (weekMode ? 2 : 1)) {
                 String prefix = completed(item) ? "✓ " : day.equals(eventDate(item)) ? "" : "↖ ";
-                TextView label = text(prefix + item.optString("title"), 10, Color.WHITE, false);
+                TextView label = text(prefix + item.optString("title"), 10, eventColor(item.optString("type")), false);
                 label.setSingleLine(true);
                 label.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 label.setContentDescription(item.optString("title") + (completed(item) ? "，已完成" : ""));
                 label.setPadding(dp(2), 0, dp(2), 0);
-                label.setBackground(background(eventColor(item.optString("type")), 3, Color.TRANSPARENT));
+                label.setBackground(background(Color.rgb(235, 241, 245), 3, Color.TRANSPARENT));
                 LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, dp(19));
                 layout.topMargin = dp(3);
                 cell.addView(label, layout);

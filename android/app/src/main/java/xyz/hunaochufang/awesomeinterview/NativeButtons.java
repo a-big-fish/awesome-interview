@@ -67,7 +67,7 @@ final class NativeButtons {
         view.setTextColor(new ColorStateList(
                 new int[][]{new int[]{-android.R.attr.state_enabled}, new int[]{}},
                 new int[]{DISABLED_TEXT, foreground}));
-        view.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         view.setTextSize(14);
         view.setMinHeight(dp(context, 48));
         view.setMinWidth(dp(context, 48));
@@ -84,7 +84,7 @@ final class NativeButtons {
     private static GradientDrawable shape(Context context, int fill, int stroke) {
         GradientDrawable shape = new GradientDrawable();
         shape.setColor(fill);
-        shape.setCornerRadius(dp(context, 14));
+        shape.setCornerRadius(dp(context, 12));
         if (stroke != Color.TRANSPARENT) shape.setStroke(dp(context, 1), stroke);
         return shape;
     }

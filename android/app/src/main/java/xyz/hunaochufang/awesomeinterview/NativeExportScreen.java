@@ -59,7 +59,7 @@ final class NativeExportScreen extends LinearLayout {
         LinearLayout heading = new LinearLayout(context);
         heading.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(context);
-        title.setText("面经导出 · 逐页预览");
+        title.setText("导出面经");
         title.setTextSize(19);
         title.setTypeface(null, Typeface.BOLD);
         title.setTextColor(Color.rgb(18, 33, 64));
@@ -75,12 +75,13 @@ final class NativeExportScreen extends LinearLayout {
         LinearLayout options = new LinearLayout(context);
         options.setOrientation(VERTICAL);
         optionsScroll.addView(options);
-        addView(optionsScroll, new LayoutParams(-1, dp(150)));
-        optionsScroll.setVisibility(GONE);
+        options.setPadding(dp(12), dp(8), dp(12), dp(16));
         settingsToggle.setOnClickListener(v -> {
-            boolean expanded = optionsScroll.getVisibility() != VISIBLE;
-            optionsScroll.setVisibility(expanded ? VISIBLE : GONE);
-            settingsToggle.setText(expanded ? "收起导出设置  ▴" : "导出设置  ▾");
+            if (optionsScroll.getParent() != null)
+                ((android.view.ViewGroup) optionsScroll.getParent()).removeView(optionsScroll);
+            new android.app.AlertDialog.Builder(context).setTitle("导出设置")
+                    .setView(optionsScroll).setPositiveButton("应用并更新", (dialog, which) -> actions.refresh())
+                    .setNegativeButton("返回预览", null).show();
         });
         style = new Spinner(context);
         style.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item,
@@ -101,9 +102,6 @@ final class NativeExportScreen extends LinearLayout {
             actions.refresh();
         });
         options.addView(hideAll);
-        Button update = button("更新预览", NativeButtons.Role.PRIMARY);
-        update.setOnClickListener(v -> actions.refresh());
-        options.addView(update);
 
         preview = new ImageView(context);
         preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -137,7 +135,9 @@ final class NativeExportScreen extends LinearLayout {
         LayoutParams savePdfParams = new LayoutParams(0, dp(48), 1);
         savePdfParams.leftMargin = dp(6);
         saves.addView(savePdf, savePdfParams);
-        addView(saves);
+        LayoutParams savesParams = new LayoutParams(-1, dp(48));
+        savesParams.topMargin = dp(8);
+        addView(saves, savesParams);
         updateButtons();
     }
 
@@ -152,6 +152,8 @@ final class NativeExportScreen extends LinearLayout {
     private CheckBox option(LinearLayout parent, String label) {
         CheckBox value = new CheckBox(getContext());
         value.setText(label);
+        value.setMinHeight(dp(48));
+        value.setTextSize(14);
         parent.addView(value);
         return value;
     }

@@ -57,6 +57,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class MainActivity extends Activity {
+    @Override protected void attachBaseContext(android.content.Context base) {
+        // The current product provides Chinese UI; localize native dialogs as well.
+        android.content.res.Configuration config = new android.content.res.Configuration(base.getResources().getConfiguration());
+        config.setLocales(new android.os.LocaleList(java.util.Locale.SIMPLIFIED_CHINESE));
+        super.attachBaseContext(base.createConfigurationContext(config));
+    }
     private static final String ORIGIN = BuildConfig.SERVER_ORIGIN;
     private static final String SERVER_AUTHORITY = Uri.parse(ORIGIN).getAuthority();
     private static final String BASE = "/my-schedule";
@@ -108,7 +114,9 @@ public final class MainActivity extends Activity {
                         WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars() |
                                 WindowInsets.Type.displayCutout());
                 top = bars.top;
-                bottom = bars.bottom;
+                bottom = Math.max(bars.bottom, insets.getInsets(WindowInsets.Type.ime()).bottom);
+                if (eventScreen != null && navigation != null && eventScreen.getVisibility() == View.VISIBLE)
+                    navigation.setVisibility(insets.isVisible(WindowInsets.Type.ime()) ? View.GONE : View.VISIBLE);
             } else {
                 // Before API 30 the decor already fits content inside system bars.
                 top = 0;
@@ -122,11 +130,13 @@ public final class MainActivity extends Activity {
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(dp(16), 0, dp(12), 0);
         top.setBackgroundColor(Color.WHITE);
-        top.setElevation(dp(2));
+        top.setElevation(0);
         TextView brand = new TextView(this);
         brand.setText(R.string.app_name);
         brand.setTextColor(Color.rgb(18, 33, 64));
         brand.setTextSize(16);
+        brand.setSingleLine(true);
+        brand.setEllipsize(android.text.TextUtils.TruncateAt.END);
         brand.setTypeface(null, Typeface.BOLD);
         brand.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setTitle("前往")
@@ -139,17 +149,22 @@ public final class MainActivity extends Activity {
                             navigateAppPage(paths[which]);
                         }).show());
         top.addView(brand, new LinearLayout.LayoutParams(0, dp(54), 1));
-        Button deviceStatus = NativeButtons.make(this, "本机", NativeButtons.Role.TONAL);
-        deviceStatus.setTextSize(12);
-        deviceStatus.setOnClickListener(v -> showDeviceStatus());
-        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(dp(58), dp(48));
-        statusParams.rightMargin = dp(6);
-        top.addView(deviceStatus, statusParams);
-        Button logout = NativeButtons.make(this, "退出", NativeButtons.Role.OUTLINED);
-        logout.setTextSize(12);
-        logout.setOnClickListener(v -> web.evaluateJavascript(
-                "(function(){let f=document.querySelector('.nav-logout-form');if(f)f.submit()})()", null));
-        top.addView(logout, new LinearLayout.LayoutParams(dp(58), dp(48)));
+        android.widget.ImageButton more = new android.widget.ImageButton(this);
+        more.setImageResource(R.drawable.nav_more);
+        more.setBackground(NativeButtons.make(this, "", NativeButtons.Role.TEXT).getBackground());
+        more.setPadding(dp(12), dp(12), dp(12), dp(12));
+        more.setContentDescription("更多选项：本机同步状态、退出登录");
+        more.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("更多选项")
+                .setItems(new String[]{"本机与同步", "退出登录"}, (dialog, which) -> {
+                    if (which == 0) showDeviceStatus();
+                    else new AlertDialog.Builder(this).setTitle("退出登录？")
+                            .setMessage("本机缓存将随账号退出而清除。")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("退出", (confirmation, button) -> web.evaluateJavascript(
+                                    "(function(){let f=document.querySelector('.nav-logout-form');if(f)f.submit()})()", null))
+                            .show();
+                }).show());
+        top.addView(more, new LinearLayout.LayoutParams(dp(48), dp(48)));
         root.addView(top);
         FrameLayout content = new FrameLayout(this);
         root.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));

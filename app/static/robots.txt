@@ -1,0 +1,7 @@
+# Public landing and copyright pages may be crawled.
+# All account, personal workspace, API and uploaded-file routes are excluded.
+User-agent: *
+Allow: /$
+Allow: /copyright$
+Allow: /static/
+Disallow: /

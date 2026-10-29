@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from time import perf_counter
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.controller import (
@@ -71,6 +71,11 @@ def create_app(settings: Settings | None = None, auth_service: AuthService | Non
     application.state.settings = settings
     application.state.performance = performance
     application.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+    @application.get("/robots.txt", include_in_schema=False)
+    def robots_txt():
+        """Expose crawler rules without requiring an authenticated session."""
+        return FileResponse(BASE_DIR / "static" / "robots.txt", media_type="text/plain")
 
     @application.middleware("http")
     async def measure_personal_requests(request: Request, call_next):

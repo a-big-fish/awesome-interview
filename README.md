@@ -1,5 +1,17 @@
 # Awesome Interview
 
+**开源面试准备工具：面经管理、求职日程、面试复盘与提醒。**
+
+[在线体验](https://schedule.hunaochufang.xyz/) · [Android 客户端](android/README.md) · [Windows 客户端](windows/README.md) · [MIT License](LICENSE)
+
+Awesome Interview is a self-hosted interview preparation and job search organizer. Manage interview schedules, collect interview questions and follow-ups, review your answers, and export interview notes to Markdown or PDF. Built with Python, FastAPI and Jinja2, with Android and Windows clients.
+
+## 在线体验
+
+访问 **[schedule.hunaochufang.xyz](https://schedule.hunaochufang.xyz/)**。面经广场和个人功能需要登录；可浏览公开面经，并管理自己的日程、简历与面试复盘。注册是否开放以网站当前提示为准，也可以按照下方说明自行部署。
+
+适用于面试准备、面经整理、求职进度管理及个人日历安排；支持中文内容。普通日程和面经功能无需 LLM 或 AI API 密钥。
+
 面向求职者的日程与面经工作台，也保留企业集中安排面试的会议日程模块。仓库同时包含 Web 服务、Android 客户端和 Windows 桌面客户端。Web 服务使用 FastAPI 和 Jinja2；两个客户端连接同一个服务端账号与数据。
 
 > 当前状态：Web 功能可运行；Android 为个人测试用 alpha 版，Windows 为个人测试版。客户端提醒、离线场景和安装流程仍需在更多真实设备上验收。iOS 尚未实现。
